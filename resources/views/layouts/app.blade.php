@@ -61,8 +61,8 @@
                             <a href="{{ route('listings.create') }}" class="rounded bg-[#7D5A50] px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-2xs hover:bg-[#6b4d44]">
                                 Publier une annonce
                             </a>
-                            <a href="https://wa.me/221770000000" target="_blank" class="rounded border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white">
-                                WhatsApp : +221 77 000 00 00
+                            <a href="https://wa.me/221774882987" target="_blank" class="rounded border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white">
+                                WhatsApp : +221 77 488 29 87
                             </a>
                         </div>
                     </div>
