@@ -37,7 +37,12 @@ class BlogController extends Controller
             ->paginate(9)
             ->withQueryString();
 
-        $categories = Article::query()->published()
+        $categories = Article::query()
+            ->where('status', 'published')
+            ->where(function ($q): void {
+                $q->whereNull('published_at')
+                    ->orWhere('published_at', '<=', now());
+            })
             ->selectRaw('category, count(*) as count')
             ->groupBy('category')
             ->orderByDesc('count')
