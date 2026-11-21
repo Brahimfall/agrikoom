@@ -36,12 +36,12 @@
 
     <!-- Main Navigation Bar -->
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex h-14 sm:h-16 items-center justify-between gap-3">
+        <div class="flex h-16 sm:h-16 items-center justify-between gap-3">
             <!-- Brand Logo (Discreet & Compact) -->
             <div class="flex items-center gap-2 shrink-0">
-                <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <img src="{{ asset('assets/brand/agrikoom-logo-cropped.png') }}" alt="AgriKoom" class="h-6 w-auto sm:h-7 object-contain">
-                    <span class="text-xs sm:text-sm font-black tracking-tight text-[#7D5A50]">AGRIKOOM</span>
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5">
+                    <img src="{{ asset('assets/brand/agrikoom-logo-cropped.png') }}" alt="AgriKoom" class="h-8 w-auto sm:h-8 object-contain">
+                    <span class="text-sm sm:text-base font-black tracking-tight text-[#7D5A50]">AGRIKOOM</span>
                 </a>
             </div>
 
@@ -60,7 +60,7 @@
             <div class="hidden sm:flex sm:items-center sm:gap-2">
                 <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-1.5 rounded-md bg-[#7D5A50] px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-2xs transition hover:bg-[#6b4d44] active:scale-98">
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                    <span>Déposer une annonce</span>
+                    <span>Publier une annonce</span>
                 </a>
 
                 @auth
@@ -103,11 +103,12 @@
 
             <!-- Mobile Hamburger Button & Quick Post Ad -->
             <div class="flex items-center gap-2 sm:hidden">
-                <a href="{{ route('listings.create') }}" class="rounded bg-[#7D5A50] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
-                    + Déposer
+                <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-1 rounded-lg bg-[#7D5A50] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-xs transition active:scale-95">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>Publier</span>
                 </a>
-                <button @click="open = ! open" aria-label="Menu" class="inline-flex items-center justify-center rounded-md p-1.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
-                    <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                <button @click="open = ! open" aria-label="Menu" class="inline-flex items-center justify-center rounded-lg p-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus:outline-none">
+                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>

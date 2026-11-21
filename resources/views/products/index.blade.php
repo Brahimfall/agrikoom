@@ -33,7 +33,7 @@
                     <a href="{{ route('listings.create') }}"
                        class="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#7D5A50] shadow hover:bg-slate-50 transition">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                        Déposer une annonce
+                        Publier une annonce
                     </a>
                 </div>
             </div>
@@ -537,7 +537,7 @@
             <div class="shrink-0">
                 <a href="{{ route('listings.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-bold uppercase tracking-wide text-[#7D5A50] shadow hover:bg-slate-50 transition">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                    Déposer une annonce gratuite
+                    Publier une annonce gratuite
                 </a>
             </div>
         </div>

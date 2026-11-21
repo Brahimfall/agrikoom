@@ -24,9 +24,9 @@
         @livewireStyles
     </head>
     <body class="bg-white text-slate-900 antialiased selection:bg-[#7D5A50]/20 selection:text-slate-950 overflow-x-hidden">
-        {{-- pt compense la hauteur du header fixe (barre utilitaire ~32px + nav ~56px + strip ~32px ≈ 120px) --}}
+        {{-- pt compense la hauteur du header fixe (barre utilitaire ~32px + nav ~64px + strip ~34px) --}}
         <div class="min-h-screen flex flex-col justify-between w-full overflow-x-hidden">
-            <div class="pt-[120px] sm:pt-[128px]">
+            <div class="pt-[112px] sm:pt-[130px]">
                 @include('layouts.navigation')
 
                 <!-- Page Heading -->
@@ -59,7 +59,7 @@
 
                         <div class="flex items-center gap-2.5">
                             <a href="{{ route('listings.create') }}" class="rounded bg-[#7D5A50] px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-2xs hover:bg-[#6b4d44]">
-                                Déposer une annonce
+                                Publier une annonce
                             </a>
                             <a href="https://wa.me/221770000000" target="_blank" class="rounded border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80 hover:text-white">
                                 WhatsApp : +221 77 000 00 00
