@@ -429,7 +429,6 @@
                             {{-- Boucle 1 --}}
                             @foreach ($pricesList as $priceTicker)
                                 <div class="inline-flex items-center gap-2.5 whitespace-nowrap">
-                                    <span class="text-sm">{{ $priceTicker->icon_emoji ?? '🌱' }}</span>
                                     <span class="font-mono text-[10px] font-black uppercase tracking-wider text-amber-300 bg-black/60 px-1.5 py-0.5 rounded border border-amber-400/20">
                                         {{ $priceTicker->ticker_display }}
                                     </span>
@@ -445,7 +444,6 @@
                             {{-- Boucle 2 (Duplicata pour raccord infini parfait) --}}
                             @foreach ($pricesList as $priceTicker)
                                 <div class="inline-flex items-center gap-2.5 whitespace-nowrap">
-                                    <span class="text-sm">{{ $priceTicker->icon_emoji ?? '🌱' }}</span>
                                     <span class="font-mono text-[10px] font-black uppercase tracking-wider text-amber-300 bg-black/60 px-1.5 py-0.5 rounded border border-amber-400/20">
                                         {{ $priceTicker->ticker_display }}
                                     </span>
@@ -577,18 +575,11 @@
                                  class="snap-start shrink-0 w-[285px] sm:w-auto relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:shadow-md hover:border-slate-300 transition-all group overflow-hidden {{ $priceItem->is_cheaper ? 'border-t-3 border-t-emerald-500' : ($priceItem->is_more_expensive ? 'border-t-3 border-t-rose-500' : 'border-t-3 border-t-slate-300') }}">
                                 
                                 <div>
-                                    <!-- En-tête de la carte : Emoji + Ticker + Badge Bourse -->
+                                    <!-- En-tête de la carte : Ticker + Badge Bourse -->
                                     <div class="flex items-center justify-between gap-2">
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-lg shadow-2xs group-hover:scale-105 transition-transform">
-                                                {{ $priceItem->icon_emoji }}
-                                            </span>
-                                            <div>
-                                                <span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                                                    {{ $priceItem->ticker_display }}
-                                                </span>
-                                            </div>
-                                        </div>
+                                        <span class="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 tracking-wider">
+                                            {{ $priceItem->ticker_display }}
+                                        </span>
 
                                         <!-- Badge Bourse (Vert si moins cher, Rouge si plus cher) -->
                                         <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-black font-mono border shadow-2xs {{ $priceItem->bourse_badge_classes }}">
