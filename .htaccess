@@ -22,6 +22,11 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # Storage assets rewrite (for flat www deployment)
+    RewriteRule ^storage/(.*)$ storage/app/public/$1 [L]
+    RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+    RewriteRule ^build/(.*)$ public/build/$1 [L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
