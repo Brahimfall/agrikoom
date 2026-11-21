@@ -142,10 +142,10 @@
                     'Legumes'             => 'prod_legumes.jpg',
                     'Elevage'             => 'agri_elevage.jpg',
                     'Materiel agricole'   => 'agri_tracteur.jpg',
-                    'Intrants'            => 'prod_cereales.jpg',
+                    'Intrants'            => 'prod_intrants.jpg',
                     'Fruits'              => 'prod_fruits.jpg',
                     'Legumineuses'        => 'prod_legumes.jpg',
-                    'Produits horticoles' => 'prod_legumes.jpg',
+                    'Produits horticoles' => 'prod_horticoles.jpg',
                     'Tubercules'          => 'prod_manioc.jpg',
                 ];
                 $categorySubtitles = [
