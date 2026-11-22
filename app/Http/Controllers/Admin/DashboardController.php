@@ -74,6 +74,8 @@ class DashboardController extends Controller
             'requests_active' => Listing::query()->active()->where('type', 'request')->count(),
             'jobs_total' => JobOffer::query()->count(),
             'jobs_active' => JobOffer::query()->active()->count(),
+            'categories_total' => Category::query()->count(),
+            'categories_active' => Category::query()->where('is_active', true)->count(),
             'market_prices_total' => MarketPrice::query()->count(),
             'market_prices_active' => MarketPrice::query()->where('is_active', true)->count(),
             'articles_total' => Article::query()->count(),

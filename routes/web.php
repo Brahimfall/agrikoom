@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\JobOfferController as AdminJobOfferController;
 use App\Http\Controllers\Admin\MarketPriceController as AdminMarketPriceController;
 use App\Http\Controllers\Admin\ArticleController as AdminArticleController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
@@ -56,6 +57,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/admin/articles/{article}', [AdminArticleController::class, 'update'])->name('admin.articles.update');
     Route::patch('/admin/articles/{article}/toggle', [AdminArticleController::class, 'toggle'])->name('admin.articles.toggle');
     Route::delete('/admin/articles/{article}', [AdminArticleController::class, 'destroy'])->name('admin.articles.destroy');
+
+    Route::get('/admin/categories', [AdminCategoryController::class, 'index'])->name('admin.categories.index');
+    Route::get('/admin/categories/creer', [AdminCategoryController::class, 'create'])->name('admin.categories.create');
+    Route::post('/admin/categories', [AdminCategoryController::class, 'store'])->name('admin.categories.store');
+    Route::get('/admin/categories/{category}/modifier', [AdminCategoryController::class, 'edit'])->name('admin.categories.edit');
+    Route::patch('/admin/categories/{category}', [AdminCategoryController::class, 'update'])->name('admin.categories.update');
+    Route::patch('/admin/categories/{category}/toggle', [AdminCategoryController::class, 'toggle'])->name('admin.categories.toggle');
+    Route::delete('/admin/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
 
     Route::get('/publier', [ListingController::class, 'create'])->name('listings.create');
     Route::get('/mes-annonces', [ListingController::class, 'mine'])->name('listings.mine');

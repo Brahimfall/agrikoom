@@ -136,41 +136,12 @@
                 </a>
             </div>
 
-            @php
-                $categoryImages = [
-                    'Cereales'            => 'prod_cereales.jpg',
-                    'Legumes'             => 'prod_legumes.jpg',
-                    'Elevage'             => 'agri_elevage.jpg',
-                    'Materiel agricole'   => 'agri_tracteur.jpg',
-                    'Intrants'            => 'prod_intrants.jpg',
-                    'Fruits'              => 'prod_fruits.jpg',
-                    'Legumineuses'        => 'prod_legumes.jpg',
-                    'Produits horticoles' => 'prod_horticoles.jpg',
-                    'Tubercules'          => 'prod_manioc.jpg',
-                ];
-                $categorySubtitles = [
-                    'Materiel agricole'   => 'Tracteurs, outils du sol, récolte',
-                    'Elevage'             => 'Bovins, ovins, caprins, provende',
-                    'Cereales'            => 'Riz de la vallée, maïs, mil, sorgho',
-                    'Legumes'             => 'Oignons des Niayes, tomates, piments',
-                    'Intrants'            => 'Semences certifiées, engrais, compost',
-                    'Fruits'              => 'Mangues, agrumes, papayes',
-                    'Tubercules'          => 'Manioc, patates douces, igname',
-                    'Legumineuses'        => 'Arachides, niébé, sésame',
-                    'Produits horticoles' => 'Production maraîchère et pépinières',
-                ];
-            @endphp
-
             <div class="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 @foreach ($categoryTiles as $categoryTile)
-                    @php
-                        $categoryImage    = $categoryImages[$categoryTile->name] ?? 'prod_legumes.jpg';
-                        $subtitle         = $categorySubtitles[$categoryTile->name] ?? 'Productions et équipements';
-                    @endphp
                     <a href="{{ route('products.index', ['category' => $categoryTile->id]) }}"
                        class="group relative block overflow-hidden rounded-lg border border-slate-200 shadow-xs transition hover:shadow-md hover:border-[#7D5A50]"
                        style="aspect-ratio: 4/3;">
-                        <img src="{{ asset('assets/home/'.$categoryImage) }}"
+                        <img src="{{ $categoryTile->image_url }}"
                              alt="{{ $categoryTile->name }}"
                              onerror="this.onerror=null;this.src='{{ asset('assets/home/prod_legumes.jpg') }}';"
                              class="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105">
@@ -180,7 +151,7 @@
                         </span>
                         <div class="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
                             <h3 class="text-xs sm:text-sm font-extrabold text-white leading-tight" style="text-shadow:0 1px 4px rgba(0,0,0,0.6);">{{ $categoryTile->name }}</h3>
-                            <p class="hidden sm:block mt-0.5 text-[10px] text-white/80 line-clamp-1">{{ $subtitle }}</p>
+                            <p class="hidden sm:block mt-0.5 text-[10px] text-white/80 line-clamp-1">{{ $categoryTile->subtitle }}</p>
                         </div>
                     </a>
                 @endforeach

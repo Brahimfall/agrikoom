@@ -65,6 +65,9 @@
                     <a href="{{ route('listings.create') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
                         + Publier
                     </a>
+                    <a href="{{ route('admin.categories.index') }}" class="rounded-xl border border-[#7D5A50]/30 bg-[#7D5A50]/10 px-3 py-2 text-xs font-bold text-[#5a3f38] hover:bg-[#7D5A50]/20 transition">
+                        Catégories ({{ $metrics['categories_total'] }})
+                    </a>
                     <a href="{{ route('admin.mercuriale.index') }}" class="rounded-xl border border-[#7D5A50]/30 bg-[#7D5A50]/10 px-3 py-2 text-xs font-bold text-[#5a3f38] hover:bg-[#7D5A50]/20 transition">
                         Prix du marché ({{ $metrics['market_prices_active'] }})
                     </a>
@@ -442,8 +445,26 @@
 
             </div>
 
-            {{-- ══════════════════ BLOC 4 : GESTION MERCURIALE & BLOG ══════════════════ --}}
-            <div class="grid gap-6 sm:grid-cols-2">
+            {{-- ══════════════════ BLOC 4 : GESTION CATALOGUE, MERCURIALE & BLOG ══════════════════ --}}
+            <div class="grid gap-6 sm:grid-cols-3">
+                {{-- Catégories --}}
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h2 class="text-base font-black text-slate-950">Catégories &amp; Filières</h2>
+                            <span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">{{ $metrics['categories_active'] }} actives</span>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500">Ajoutez, modifiez ou supprimez les filières agricoles et leurs visuels d'accueil.</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                        <span class="text-xs font-semibold text-slate-700">{{ $metrics['categories_total'] }} catégories au total</span>
+                        <div class="flex gap-2">
+                            <a href="{{ route('admin.categories.create') }}" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100">+ Ajouter</a>
+                            <a href="{{ route('admin.categories.index') }}" class="rounded-lg bg-[#7D5A50] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#6b4d44]">Gérer</a>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Mercuriale --}}
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
                     <div>

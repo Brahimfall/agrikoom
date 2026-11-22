@@ -81,6 +81,7 @@
                             @if (Auth::user()->is_admin)
                                 <div class="border-t border-slate-100"></div>
                                 <x-dropdown-link :href="route('admin.dashboard')" class="font-bold text-[#7D5A50]">Administration</x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.categories.index')">Catégories de produits</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.mercuriale.index')">Prix du marché</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.articles.index')">Articles de blog</x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.jobs.index')">Offres d'emploi</x-dropdown-link>
@@ -186,6 +187,7 @@
                 <a href="{{ route('profile.edit') }}" class="block rounded-md px-3 py-1.5 hover:bg-slate-100">Profil</a>
                 @if (Auth::user()->is_admin)
                     <a href="{{ route('admin.dashboard') }}" class="block rounded-md px-3 py-1.5 text-[#7D5A50] hover:bg-[#7D5A50]/5">Administration</a>
+                    <a href="{{ route('admin.categories.index') }}" class="block rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-50">Catégories de produits</a>
                     <a href="{{ route('admin.mercuriale.index') }}" class="block rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-50">Prix du marché</a>
                     <a href="{{ route('admin.articles.index') }}" class="block rounded-md px-3 py-1.5 text-slate-700 hover:bg-slate-50">Gestion Blog</a>
                 @endif
