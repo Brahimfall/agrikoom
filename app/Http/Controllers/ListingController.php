@@ -62,7 +62,7 @@ class ListingController extends Controller
         $isPubliclyVisible = $listing->status === 'active'
             && ($listing->expires_at === null || $listing->expires_at->isFuture());
 
-        abort_if(! $isPubliclyVisible && Auth::id() !== $listing->user_id, 404);
+        abort_if(! $isPubliclyVisible && Auth::id() !== $listing->user_id && ! Auth::user()?->is_admin, 404);
 
         return view('listings.show', [
             'listing' => $listing,
@@ -71,7 +71,7 @@ class ListingController extends Controller
 
     public function edit(Listing $listing): View
     {
-        abort_unless(Auth::id() === $listing->user_id, 403);
+        abort_unless(Auth::id() === $listing->user_id || Auth::user()?->is_admin, 403);
 
         return view('listings.form', [
             'listing' => $listing->load('photos'),
@@ -80,7 +80,7 @@ class ListingController extends Controller
 
     public function destroy(Listing $listing): RedirectResponse
     {
-        abort_unless(Auth::id() === $listing->user_id, 403);
+        abort_unless(Auth::id() === $listing->user_id || Auth::user()?->is_admin, 403);
 
         foreach ($listing->photos as $photo) {
             Storage::disk('public')->delete($photo->path);
@@ -88,40 +88,73 @@ class ListingController extends Controller
 
         $listing->delete();
 
-        return redirect()->route('listings.mine')->with('status', 'Annonce supprimee.');
+        return redirect()->route('listings.mine')->with('status', 'Annonce supprimée avec succès.');
     }
 
     public function mine(): View
     {
-        $listings = Auth::user()
-            ->listings()
-            ->with(['category', 'photos'])
-            ->latest()
-            ->paginate(12);
+        $user = Auth::user();
+        $isAdmin = (bool) $user->is_admin;
+        $filter = request('filter', $isAdmin ? 'all' : 'mine');
+
+        $query = Listing::query()->with(['category', 'photos', 'user']);
+
+        if (! $isAdmin || $filter === 'mine') {
+            $query->where('user_id', $user->id);
+        }
+
+        if ($isAdmin && request()->filled('user_id')) {
+            $query->where('user_id', request('user_id'));
+        }
+
+        if (request()->filled('status')) {
+            $query->where('status', request('status'));
+        }
+
+        if (request()->filled('search')) {
+            $search = trim((string) request('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('product', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $listings = $query->latest()->paginate(15)->withQueryString();
 
         return view('listings.mine', [
             'listings' => $listings,
+            'isAdmin' => $isAdmin,
+            'currentFilter' => $filter,
+            'allCount' => $isAdmin ? Listing::query()->count() : null,
+            'myCount' => $user->listings()->count(),
+            'sellers' => $isAdmin ? \App\Models\User::has('listings')->orderBy('name')->get(['id', 'name', 'phone']) : collect(),
         ]);
     }
 
     public function markSold(Listing $listing): RedirectResponse
     {
-        abort_unless(Auth::id() === $listing->user_id, 403);
+        abort_unless(Auth::id() === $listing->user_id || Auth::user()?->is_admin, 403);
 
         $listing->update(['status' => 'sold']);
 
-        return back()->with('status', 'Annonce marquee comme vendue.');
+        return back()->with('status', 'Annonce marquée comme vendue.');
     }
 
     public function renew(Listing $listing): RedirectResponse
     {
-        abort_unless(Auth::id() === $listing->user_id, 403);
+        abort_unless(Auth::id() === $listing->user_id || Auth::user()?->is_admin, 403);
 
         $listing->update([
             'status' => 'active',
             'expires_at' => now()->addDays(30),
         ]);
 
-        return back()->with('status', 'Annonce renouvelee pour 30 jours.');
+        return back()->with('status', 'Annonce renouvelée pour 30 jours.');
     }
 }

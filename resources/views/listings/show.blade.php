@@ -27,8 +27,18 @@
                 </div>
 
                 @auth
-                    @if (auth()->id() === $listing->user_id)
-                        <a href="{{ route('listings.edit', $listing) }}" class="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 hover:bg-slate-50">Modifier</a>
+                    @if (auth()->id() === $listing->user_id || auth()->user()?->is_admin)
+                        <div class="flex items-center gap-2">
+                            @if (auth()->user()?->is_admin && auth()->id() !== $listing->user_id)
+                                <span class="rounded-full bg-[#7D5A50]/10 border border-[#7D5A50]/20 px-2.5 py-1 text-[11px] font-bold text-[#7D5A50]">
+                                    Mode Admin (Vendeur : {{ $listing->user->name ?? 'Tierce' }})
+                                </span>
+                            @endif
+                            <a href="{{ route('listings.edit', $listing) }}" class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 text-xs font-bold text-slate-800 hover:bg-slate-50 shadow-2xs">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                <span>Modifier l'annonce</span>
+                            </a>
+                        </div>
                     @endif
                 @endauth
             </div>

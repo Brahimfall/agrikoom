@@ -76,7 +76,7 @@
                             <div class="border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
                                 Connecté : <strong class="text-slate-800">{{ Auth::user()->name }}</strong>
                             </div>
-                            <x-dropdown-link :href="route('listings.mine')">Mes annonces</x-dropdown-link>
+                            <x-dropdown-link :href="route('listings.mine')">{{ Auth::user()->is_admin ? '📦 Gestion des annonces' : 'Mes annonces' }}</x-dropdown-link>
                             <x-dropdown-link :href="route('profile.edit')">Paramètres</x-dropdown-link>
                             @if (Auth::user()->is_admin)
                                 <div class="border-t border-slate-100"></div>
@@ -182,7 +182,7 @@
             @auth
                 <div class="my-2 border-t border-slate-200"></div>
                 <div class="px-3 py-1 text-[11px] font-bold uppercase text-slate-400">Compte : {{ Auth::user()->name }}</div>
-                <a href="{{ route('listings.mine') }}" class="block rounded-md px-3 py-1.5 text-[#7D5A50] font-bold hover:bg-slate-100">Mes annonces</a>
+                <a href="{{ route('listings.mine') }}" class="block rounded-md px-3 py-1.5 text-[#7D5A50] font-bold hover:bg-slate-100">{{ Auth::user()->is_admin ? '📦 Gestion des annonces' : 'Mes annonces' }}</a>
                 <a href="{{ route('profile.edit') }}" class="block rounded-md px-3 py-1.5 hover:bg-slate-100">Profil</a>
                 @if (Auth::user()->is_admin)
                     <a href="{{ route('admin.dashboard') }}" class="block rounded-md px-3 py-1.5 text-[#7D5A50] hover:bg-[#7D5A50]/5">Administration</a>

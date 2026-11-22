@@ -58,6 +58,13 @@
                     </button>
 
                     {{-- Raccourcis Admin --}}
+                    <a href="{{ route('listings.mine') }}" class="rounded-xl border border-[#7D5A50] bg-[#7D5A50] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#6b4d44] transition shadow-xs flex items-center gap-1.5">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        <span>Annonces ({{ $metrics['listings_active'] }})</span>
+                    </a>
+                    <a href="{{ route('listings.create') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
+                        + Publier
+                    </a>
                     <a href="{{ route('admin.mercuriale.index') }}" class="rounded-xl border border-[#7D5A50]/30 bg-[#7D5A50]/10 px-3 py-2 text-xs font-bold text-[#5a3f38] hover:bg-[#7D5A50]/20 transition">
                         Prix du marché ({{ $metrics['market_prices_active'] }})
                     </a>

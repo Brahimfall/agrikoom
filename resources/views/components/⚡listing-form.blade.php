@@ -2,6 +2,7 @@
 
 use App\Models\Category;
 use App\Models\Listing;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -24,16 +25,25 @@ new class extends Component
     public string $available_from = '';
     public array $photos = [];
 
+    // Super Admin options
+    public ?int $user_id = null;
+    public string $vendor_mode = 'existing'; // 'existing' | 'new'
+    public string $vendor_new_name = '';
+    public string $vendor_new_phone = '';
+    public string $vendor_new_location = '';
+
     public function mount(?Listing $listing = null): void
     {
         if (! $listing?->exists) {
             $this->location = Auth::user()->location ?? '';
+            $this->user_id = Auth::id();
             return;
         }
 
-        abort_unless(Auth::id() === $listing->user_id, 403);
+        abort_unless(Auth::id() === $listing->user_id || Auth::user()?->is_admin, 403);
 
         $this->listing = $listing;
+        $this->user_id = $listing->user_id;
         $this->type = $listing->type;
         $this->title = $listing->title;
         $this->product = $listing->product;
@@ -45,6 +55,16 @@ new class extends Component
         $this->is_negotiable = $listing->is_negotiable;
         $this->location = $listing->location;
         $this->available_from = optional($listing->available_from)->format('Y-m-d') ?? '';
+    }
+
+    public function updatedUserId($val): void
+    {
+        if ($val) {
+            $vendor = User::find($val);
+            if ($vendor && ! empty($vendor->location) && empty($this->location)) {
+                $this->location = $vendor->location;
+            }
+        }
     }
 
     public function save()
@@ -75,8 +95,38 @@ new class extends Component
             return;
         }
 
+        $targetUserId = Auth::id();
+
+        if (Auth::user()?->is_admin) {
+            if ($this->vendor_mode === 'new') {
+                $this->validate([
+                    'vendor_new_name' => ['required', 'string', 'max:120'],
+                    'vendor_new_phone' => ['required', 'string', 'max:30'],
+                    'vendor_new_location' => ['nullable', 'string', 'max:255'],
+                ], [
+                    'vendor_new_name.required' => 'Le nom du vendeur est requis.',
+                    'vendor_new_phone.required' => 'Le numéro de téléphone du vendeur est requis.',
+                ]);
+
+                $newVendor = User::firstOrCreate(
+                    ['phone' => trim($this->vendor_new_phone)],
+                    [
+                        'name' => trim($this->vendor_new_name),
+                        'location' => trim($this->vendor_new_location) ?: $data['location'],
+                        'actor_type' => 'producer',
+                    ]
+                );
+
+                $targetUserId = $newVendor->id;
+            } elseif ($this->user_id) {
+                $targetUserId = $this->user_id;
+            }
+        } elseif ($this->listing?->exists) {
+            $targetUserId = $this->listing->user_id;
+        }
+
         $listingData = collect($data)->except('photos')->merge([
-            'user_id' => Auth::id(),
+            'user_id' => $targetUserId,
             'quantity' => ($data['quantity'] ?? '') === '' ? null : $data['quantity'],
             'price' => ($data['price'] ?? '') === '' ? null : $data['price'],
             'available_from' => ($data['available_from'] ?? '') === '' ? null : $data['available_from'],
@@ -98,7 +148,7 @@ new class extends Component
             ]);
         }
 
-        session()->flash('status', 'Annonce enregistree.');
+        session()->flash('status', 'Annonce enregistrée avec succès.');
 
         return redirect()->route('listings.show', $listing);
     }
@@ -107,6 +157,8 @@ new class extends Component
     {
         return $this->view([
             'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(),
+            'vendors' => Auth::user()?->is_admin ? User::query()->orderBy('name')->get(['id', 'name', 'phone', 'email', 'location']) : collect(),
+            'selectedVendor' => Auth::user()?->is_admin && $this->user_id ? User::find($this->user_id) : null,
         ]);
     }
 };
@@ -114,6 +166,79 @@ new class extends Component
 
 <div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg">
     <form wire:submit.prevent="save" class="space-y-6 p-6">
+        @if (Auth::user()?->is_admin)
+            <div class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#7D5A50] text-white text-xs font-bold">★</span>
+                        <h3 class="text-sm font-bold text-[#7D5A50]">Options Super Admin : Attribution de l'annonce</h3>
+                    </div>
+                    <span class="rounded-full bg-[#7D5A50] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white">Super Admin</span>
+                </div>
+                <p class="text-xs text-slate-600 mb-4">
+                    Vous pouvez publier ce produit au nom d'un vendeur ou producteur tiers.
+                </p>
+
+                <!-- Bascule Mode Existant vs Nouveau Vendeur -->
+                <div class="flex flex-wrap items-center gap-4 mb-4 text-xs font-semibold">
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" wire:model.live="vendor_mode" value="existing" class="text-[#7D5A50] focus:ring-[#7D5A50]">
+                        <span>Attribuer à un vendeur existant</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input type="radio" wire:model.live="vendor_mode" value="new" class="text-[#7D5A50] focus:ring-[#7D5A50]">
+                        <span class="text-[#7D5A50] font-bold">+ Créer un nouveau vendeur</span>
+                    </label>
+                </div>
+
+                @if ($vendor_mode === 'existing')
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Vendeur propriétaire :</label>
+                            <select wire:model.live="user_id" class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
+                                @foreach ($vendors as $v)
+                                    <option value="{{ $v->id }}">
+                                        {{ $v->name }} ({{ $v->phone ?: $v->email }}) {{ $v->id === Auth::id() ? '— [Moi-même / Super Admin]' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @if ($selectedVendor)
+                            <div class="rounded-lg bg-white p-3 border border-slate-200/90 text-xs shadow-2xs">
+                                <div class="font-bold text-slate-900">{{ $selectedVendor->name }}</div>
+                                <div class="text-slate-600 text-[11px] mt-0.5">
+                                    <span>📞 {{ $selectedVendor->phone ?: 'Sans numéro' }}</span>
+                                    @if ($selectedVendor->location)
+                                        <span>&bull; 📍 {{ $selectedVendor->location }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <div class="rounded-xl bg-white p-4 border border-[#7D5A50]/20 space-y-3">
+                        <div class="text-xs font-bold text-slate-800">Coordonnées du nouveau vendeur :</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nom complet *</label>
+                                <input type="text" wire:model="vendor_new_name" placeholder="Ex: Moussa Diop" class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
+                                @error('vendor_new_name') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Téléphone / WhatsApp *</label>
+                                <input type="tel" wire:model="vendor_new_phone" placeholder="Ex: +221770000000" class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
+                                @error('vendor_new_phone') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Localisation / Région</label>
+                                <input type="text" wire:model="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @endif
+
         <div class="grid gap-5 md:grid-cols-2">
             <div>
                 <label for="type" class="block text-sm font-medium text-slate-700">Type d'annonce</label>
