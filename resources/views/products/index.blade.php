@@ -389,10 +389,17 @@
                                             {{ $product->title }}
                                         </a>
                                     </h3>
-                                    <p class="mt-0.5 text-xs text-slate-500">
-                                        Produit : <strong class="text-slate-700">{{ $product->product }}</strong>
-                                        @if ($product->available_from)
-                                            &bull; Dispo {{ $product->available_from->format('d/m/Y') }}
+                                    <p class="mt-0.5 text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                                        <span>Produit : <strong class="text-slate-700">{{ $product->product }}</strong></span>
+                                        @if ($product->is_available_immediately)
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                Immédiat
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                                                Dispo {{ $product->available_from->format('d/m/Y') }}
+                                            </span>
                                         @endif
                                     </p>
                                 </div>

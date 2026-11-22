@@ -75,4 +75,9 @@ class Listing extends Model
     {
         return $this->type === 'offer';
     }
+
+    public function getIsAvailableImmediatelyAttribute(): bool
+    {
+        return is_null($this->available_from) || $this->available_from->lte(today());
+    }
 }

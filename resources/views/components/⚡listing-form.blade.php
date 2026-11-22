@@ -22,6 +22,7 @@ new class extends Component
     public string $price = '';
     public bool $is_negotiable = true;
     public string $location = '';
+    public string $availability_type = 'immediate'; // 'immediate' | 'later'
     public string $available_from = '';
     public array $photos = [];
 
@@ -59,7 +60,13 @@ new class extends Component
         $this->price = (string) $listing->price;
         $this->is_negotiable = $listing->is_negotiable;
         $this->location = $listing->location;
-        $this->available_from = optional($listing->available_from)->format('Y-m-d') ?? '';
+        if ($listing->available_from && $listing->available_from->gt(today())) {
+            $this->availability_type = 'later';
+            $this->available_from = $listing->available_from->format('Y-m-d');
+        } else {
+            $this->availability_type = 'immediate';
+            $this->available_from = '';
+        }
     }
 
     public function updatedUserId($val): void
@@ -87,7 +94,7 @@ new class extends Component
 
     public function save()
     {
-        $data = $this->validate([
+        $validationRules = [
             'type' => ['required', 'in:offer,request'],
             'title' => ['required', 'string', 'max:160'],
             'product' => ['required', 'string', 'max:120'],
@@ -98,10 +105,16 @@ new class extends Component
             'price' => ['nullable', 'numeric', 'min:0'],
             'is_negotiable' => ['boolean'],
             'location' => ['required', 'string', 'max:255'],
-            'available_from' => ['nullable', 'date'],
+            'availability_type' => ['required', 'in:immediate,later'],
             'photos' => ['array', 'max:5'],
             'photos.*' => ['image', 'max:2048'],
-        ]);
+        ];
+
+        if ($this->availability_type === 'later') {
+            $validationRules['available_from'] = ['required', 'date'];
+        }
+
+        $data = $this->validate($validationRules);
 
         $existingPhotoCount = $this->listing?->exists
             ? $this->listing->photos()->count()
@@ -154,11 +167,15 @@ new class extends Component
             $targetUserId = $this->listing->user_id;
         }
 
-        $listingData = collect($data)->except('photos')->merge([
+        $finalAvailableFrom = $this->availability_type === 'immediate'
+            ? now()->toDateString()
+            : ($this->available_from ?: now()->toDateString());
+
+        $listingData = collect($data)->except(['photos', 'availability_type'])->merge([
             'user_id' => $targetUserId,
             'quantity' => ($data['quantity'] ?? '') === '' ? null : $data['quantity'],
             'price' => ($data['price'] ?? '') === '' ? null : $data['price'],
-            'available_from' => ($data['available_from'] ?? '') === '' ? null : $data['available_from'],
+            'available_from' => $finalAvailableFrom,
             'expires_at' => $this->listing?->expires_at ?? now()->addDays(30),
             'status' => $this->listing?->status ?? 'active',
         ])->all();
@@ -341,9 +358,32 @@ new class extends Component
             </div>
 
             <div>
-                <label for="available_from" class="block text-sm font-medium text-slate-700">Disponible a partir du</label>
-                <input id="available_from" type="date" wire:model="available_from" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-[#7D5A50] focus:ring-[#7D5A50]">
-                @error('available_from') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                <label class="block text-sm font-medium text-slate-700 mb-1">Disponibilité</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" 
+                            wire:click="$set('availability_type', 'immediate')"
+                            class="px-3 py-2 rounded-lg border text-sm font-medium flex items-center justify-center gap-1.5 transition {{ $availability_type === 'immediate' ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>Immédiat</span>
+                    </button>
+                    <button type="button" 
+                            wire:click="$set('availability_type', 'later')"
+                            class="px-3 py-2 rounded-lg border text-sm font-medium flex items-center justify-center gap-1.5 transition {{ $availability_type === 'later' ? 'border-[#7D5A50] bg-[#7D5A50]/10 text-[#7D5A50] ring-2 ring-[#7D5A50]/20' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>Date ultérieure</span>
+                    </button>
+                </div>
+                @if ($availability_type === 'later')
+                    <div class="mt-2">
+                        <label for="available_from" class="block text-xs text-slate-600 mb-1">Date prévue :</label>
+                        <input id="available_from" type="date" wire:model="available_from" min="{{ now()->toDateString() }}" class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-[#7D5A50] focus:ring-[#7D5A50]">
+                        @error('available_from') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                @else
+                    <p class="mt-1.5 text-[11px] text-emerald-700 flex items-center gap-1">
+                        ✓ En stock / disponible dès aujourd'hui
+                    </p>
+                @endif
             </div>
 
             <div>

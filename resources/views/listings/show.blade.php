@@ -98,8 +98,20 @@
                                 <dd class="mt-1 font-bold text-slate-900">{{ $listing->product }}</dd>
                             </div>
                             <div class="rounded-md bg-slate-50 p-3">
-                                <dt class="text-slate-500">Disponible</dt>
-                                <dd class="mt-1 font-bold text-slate-900">{{ optional($listing->available_from)->format('d/m/Y') ?? 'A preciser' }}</dd>
+                                <dt class="text-slate-500">Disponibilité</dt>
+                                <dd class="mt-1">
+                                    @if ($listing->is_available_immediately)
+                                        <span class="inline-flex items-center gap-1.5 font-bold text-emerald-700">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            Immédiate (En stock)
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 font-bold text-amber-700">
+                                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                            À partir du {{ $listing->available_from->format('d/m/Y') }}
+                                        </span>
+                                    @endif
+                                </dd>
                             </div>
                         </dl>
                     </section>
