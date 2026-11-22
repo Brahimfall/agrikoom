@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -14,15 +14,19 @@
                     {{ $isAdmin ? 'Consultez, modifiez ou ajoutez des annonces pour vous-même ou pour d\'autres vendeurs.' : 'Suivez vos annonces actives, vendues ou expirées.' }}
                 </p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 @if ($isAdmin)
-                    <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
+                    <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition">
                         Tableau de bord
+                    </a>
+                    <a href="{{ route('listings.create', ['vendor_mode' => 'new']) }}" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-700 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-xs hover:bg-emerald-800 transition">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        <span>+ Nouveau client / vendeur</span>
                     </a>
                 @endif
                 <a href="{{ route('listings.create') }}" class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#7D5A50] px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-xs hover:bg-[#6b4d44] transition">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                    <span>{{ $isAdmin ? '+ Publier pour un vendeur' : 'Publier' }}</span>
+                    <span>{{ $isAdmin ? 'Publier (Moi / Existant)' : 'Publier' }}</span>
                 </a>
             </div>
         </div>
