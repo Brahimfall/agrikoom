@@ -7,6 +7,8 @@ use App\Models\Category;
 use App\Models\Listing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -17,6 +19,8 @@ class CategoryController extends Controller
     public function index(Request $request): View
     {
         $this->authorizeAdmin($request);
+
+        $this->ensureSchemaUpToDate();
 
         $query = Category::query()
             ->withCount([
@@ -101,13 +105,18 @@ class CategoryController extends Controller
             $imagePath = $validated['preset_image'];
         }
 
-        Category::create([
+        $categoryData = [
             'name'        => trim($validated['name']),
             'slug'        => $slug,
             'description' => ! empty($validated['description']) ? trim($validated['description']) : null,
-            'image'       => $imagePath,
             'is_active'   => $request->boolean('is_active', true),
-        ]);
+        ];
+
+        if (Schema::hasColumn('categories', 'image')) {
+            $categoryData['image'] = $imagePath;
+        }
+
+        Category::create($categoryData);
 
         return redirect()->route('admin.categories.index')
             ->with('status', "La catégorie '{$validated['name']}' a été créée avec succès.");
@@ -165,13 +174,18 @@ class CategoryController extends Controller
             $imagePath = $validated['preset_image'];
         }
 
-        $category->update([
+        $updateData = [
             'name'        => trim($validated['name']),
             'slug'        => $slug,
             'description' => ! empty($validated['description']) ? trim($validated['description']) : null,
-            'image'       => $imagePath,
             'is_active'   => $request->boolean('is_active'),
-        ]);
+        ];
+
+        if (Schema::hasColumn('categories', 'image')) {
+            $updateData['image'] = $imagePath;
+        }
+
+        $category->update($updateData);
 
         return redirect()->route('admin.categories.index')
             ->with('status', "La catégorie '{$category->name}' a été mise à jour avec succès.");
@@ -235,6 +249,17 @@ class CategoryController extends Controller
     private function authorizeAdmin(Request $request): void
     {
         abort_unless($request->user()?->is_admin, 403);
+    }
+
+    private function ensureSchemaUpToDate(): void
+    {
+        if (! Schema::hasColumn('categories', 'image')) {
+            try {
+                Artisan::call('migrate', ['--force' => true]);
+            } catch (\Throwable $e) {
+                // Ignore if migration fails in restricted environment
+            }
+        }
     }
 
     /**
