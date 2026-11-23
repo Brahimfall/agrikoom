@@ -138,7 +138,7 @@
 
             <div class="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 @foreach ($categoryTiles as $categoryTile)
-                    <a href="{{ route('products.index', ['category' => $categoryTile->id]) }}"
+                    <a href="{{ route('products.index', ['category' => $categoryTile->slug ?: $categoryTile->id]) }}"
                        class="group relative block overflow-hidden rounded-lg border border-slate-200 shadow-xs transition hover:shadow-md hover:border-[#7D5A50]"
                        style="aspect-ratio: 4/3;">
                         <img src="{{ $categoryTile->image_url }}"

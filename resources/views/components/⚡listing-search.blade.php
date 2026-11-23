@@ -25,10 +25,16 @@ new class extends Component
         $this->type = in_array(request('type'), ['offer', 'request'], true) ? (string) request('type') : '';
         $this->location = (string) request('location', '');
         $this->availableNow = request('available_now') === '1';
-        $requestedCategory = (string) request('category', '');
+        $requestedCategory = trim((string) request('category', ''));
 
-        if ($requestedCategory !== '' && Category::query()->whereKey($requestedCategory)->exists()) {
-            $this->category = $requestedCategory;
+        if ($requestedCategory !== '') {
+            $cat = is_numeric($requestedCategory)
+                ? Category::query()->find((int) $requestedCategory)
+                : Category::query()->where('slug', $requestedCategory)->orWhere('name', 'like', "%{$requestedCategory}%")->first();
+
+            if ($cat) {
+                $this->category = (string) $cat->id;
+            }
         }
     }
 

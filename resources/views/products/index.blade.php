@@ -86,7 +86,7 @@
                                         class="mt-1.5 block w-full rounded border-slate-300 text-xs shadow-2xs focus:border-[#7D5A50] focus:ring-1 focus:ring-[#7D5A50]">
                                     <option value="">Toutes les familles ({{ $totalProducts }})</option>
                                     @foreach ($categories as $cat)
-                                        <option value="{{ $cat->id }}" @selected(request('category') == $cat->id)>
+                                        <option value="{{ $cat->slug }}" @selected(request('category') == $cat->slug || request('category') == (string) $cat->id)>
                                             {{ $cat->name }} ({{ $cat->active_count }})
                                         </option>
                                     @endforeach
@@ -197,14 +197,11 @@
                                     <a href="{{ request()->fullUrlWithQuery(['search' => null, 'page' => null]) }}" class="hover:text-[#4a342e] ml-0.5">×</a>
                                 </span>
                             @endif
-                            @if (request('category'))
-                                @php $activeCat = $categories->firstWhere('id', request('category')); @endphp
-                                @if ($activeCat)
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-[#7D5A50]/10 border border-[#7D5A50]/20 px-2.5 py-0.5 text-[11px] font-bold text-[#7D5A50]">
-                                        {{ $activeCat->name }}
-                                        <a href="{{ request()->fullUrlWithQuery(['category' => null, 'page' => null]) }}" class="hover:text-[#4a342e] ml-0.5">×</a>
-                                    </span>
-                                @endif
+                            @if (!empty($selectedCategory))
+                                <span class="inline-flex items-center gap-1 rounded-full bg-[#7D5A50]/10 border border-[#7D5A50]/20 px-2.5 py-0.5 text-[11px] font-bold text-[#7D5A50]">
+                                    {{ $selectedCategory->name }}
+                                    <a href="{{ request()->fullUrlWithQuery(['category' => null, 'page' => null]) }}" class="hover:text-[#4a342e] ml-0.5">×</a>
+                                </span>
                             @endif
                             @if (request('location'))
                                 <span class="inline-flex items-center gap-1 rounded-full bg-[#7D5A50]/10 border border-[#7D5A50]/20 px-2.5 py-0.5 text-[11px] font-bold text-[#7D5A50]">

@@ -18,12 +18,14 @@ class ProductController extends Controller
 
         // Filtre par catégorie (supporte l'ID, le slug ou le nom)
         if ($request->filled('category')) {
-            $catVal = $request->category;
+            $catVal = trim((string) $request->category);
+            $catSlug = \Illuminate\Support\Str::slug($catVal);
             if (is_numeric($catVal)) {
-                $query->where('category_id', $catVal);
+                $query->where('category_id', (int) $catVal);
             } else {
-                $query->whereHas('category', function ($q) use ($catVal) {
+                $query->whereHas('category', function ($q) use ($catVal, $catSlug) {
                     $q->where('slug', $catVal)
+                      ->orWhere('slug', $catSlug)
                       ->orWhere('name', 'like', "%{$catVal}%");
                 });
             }
@@ -75,10 +77,11 @@ class ProductController extends Controller
 
         $selectedCategory = null;
         if ($request->filled('category')) {
-            $catVal = $request->category;
+            $catVal = trim((string) $request->category);
+            $catSlug = \Illuminate\Support\Str::slug($catVal);
             $selectedCategory = is_numeric($catVal)
                 ? $categories->firstWhere('id', (int) $catVal)
-                : $categories->first(fn ($c) => $c->slug === $catVal || mb_strtolower($c->name) === mb_strtolower($catVal));
+                : $categories->first(fn ($c) => $c->slug === $catVal || $c->slug === $catSlug || mb_strtolower($c->name) === mb_strtolower($catVal));
         }
 
         return view('products.index', compact('products', 'categories', 'totalProducts', 'selectedCategory'));

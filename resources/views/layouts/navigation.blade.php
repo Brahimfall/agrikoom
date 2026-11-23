@@ -121,31 +121,34 @@
     <!-- Category Nav Strip (Horizontally Scrollable without breaking page width) -->
     <div class="w-full border-t border-slate-200 bg-slate-50 overflow-x-auto scrollbar-none">
         <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-1.5 text-xs font-semibold text-slate-700 sm:px-6 lg:px-8 whitespace-nowrap min-w-max">
+            @php
+                $currentCat = (string) request('category', '');
+            @endphp
             <a href="{{ route('listings.index') }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('home') || (request()->routeIs('listings.index') && !request()->routeIs('products.*')) ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Toutes les annonces
             </a>
-            <a href="{{ route('products.index') }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && !request('category') ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index') }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && empty($currentCat) ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 🛒 Tous les produits
             </a>
-            <a href="{{ route('products.index', ['category' => 7]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '7' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index', ['category' => 'materiel-agricole']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && in_array($currentCat, ['materiel-agricole', 'materiel']) ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Tracteurs &amp; Matériel
             </a>
-            <a href="{{ route('products.index', ['category' => 6]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '6' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index', ['category' => 'elevage']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && $currentCat === 'elevage' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Élevage &amp; Animaux
             </a>
-            <a href="{{ route('products.index', ['category' => 1]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '1' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index', ['category' => 'cereales']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && $currentCat === 'cereales' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Céréales &amp; Récoltes
             </a>
-            <a href="{{ route('products.index', ['category' => 3]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '3' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index', ['category' => 'legumes']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && $currentCat === 'legumes' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Légumes &amp; Maraîchage
             </a>
-            <a href="{{ route('products.index', ['category' => 5]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '5' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
-                Intrants &amp; Semences
-            </a>
-            <a href="{{ route('products.index', ['category' => 2]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '2' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index', ['category' => 'fruits']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && $currentCat === 'fruits' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Fruits
             </a>
-            <a href="{{ route('products.index', ['category' => 4]) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && (string) request('category') === '4' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+            <a href="{{ route('products.index', ['category' => 'intrants']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && $currentCat === 'intrants' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
+                Intrants &amp; Semences
+            </a>
+            <a href="{{ route('products.index', ['category' => 'tubercules']) }}" class="py-1 hover:text-[#7D5A50] transition {{ request()->routeIs('products.*') && $currentCat === 'tubercules' ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
                 Tubercules
             </a>
             <a href="{{ route('jobs.index') }}" class="py-1 text-slate-800 hover:text-[#7D5A50] transition {{ request()->routeIs('jobs.*') ? 'border-b-2 border-[#7D5A50] text-[#7D5A50] font-bold' : '' }}">
@@ -172,11 +175,13 @@
         <div class="space-y-0.5 px-3 py-2 text-xs font-medium text-slate-800">
             <a href="{{ route('listings.index') }}" class="block rounded-md px-3 py-1.5 hover:bg-slate-100">Toutes les annonces</a>
             <a href="{{ route('products.index') }}" class="block rounded-md px-3 py-1.5 font-bold text-[#7D5A50] hover:bg-slate-100">🛒 Tous les produits</a>
-            <a href="{{ route('products.index', ['category' => 7]) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Tracteurs &amp; Matériel</a>
-            <a href="{{ route('products.index', ['category' => 6]) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Élevage &amp; Bétail</a>
-            <a href="{{ route('products.index', ['category' => 1]) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Céréales &amp; Récoltes</a>
-            <a href="{{ route('products.index', ['category' => 3]) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Légumes &amp; Maraîchage</a>
-            <a href="{{ route('products.index', ['category' => 5]) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Intrants &amp; Semences</a>
+            <a href="{{ route('products.index', ['category' => 'materiel-agricole']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Tracteurs &amp; Matériel</a>
+            <a href="{{ route('products.index', ['category' => 'elevage']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Élevage &amp; Bétail</a>
+            <a href="{{ route('products.index', ['category' => 'cereales']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Céréales &amp; Récoltes</a>
+            <a href="{{ route('products.index', ['category' => 'legumes']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Légumes &amp; Maraîchage</a>
+            <a href="{{ route('products.index', ['category' => 'fruits']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Fruits</a>
+            <a href="{{ route('products.index', ['category' => 'intrants']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Intrants &amp; Semences</a>
+            <a href="{{ route('products.index', ['category' => 'tubercules']) }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Tubercules &amp; Racines</a>
             <a href="{{ route('jobs.index') }}" class="block rounded-md px-3 py-1.5 text-slate-600 hover:bg-slate-50">Offres d'emploi agricole</a>
             <a href="{{ route('blog.index') }}" class="block rounded-md px-3 py-1.5 text-[#7D5A50] font-bold hover:bg-slate-50">Blog &amp; Conseils agricoles</a>
 

@@ -74,11 +74,11 @@
                     <div>
                         <h3 class="text-xs font-bold uppercase tracking-wider text-white">Matériel &amp; Équipements</h3>
                         <ul class="mt-2.5 space-y-1.5 text-slate-300">
-                            <li><a href="{{ route('products.index', ['category' => 7]) }}" class="hover:text-white">Tracteurs agricoles</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'materiel-agricole']) }}" class="hover:text-white">Tracteurs agricoles</a></li>
                             <li><a href="{{ route('products.index', ['search' => 'Motopompe']) }}" class="hover:text-white">Motopompes &amp; kits solaires</a></li>
                             <li><a href="{{ route('products.index', ['search' => 'Charrue']) }}" class="hover:text-white">Outils de travail du sol</a></li>
                             <li><a href="{{ route('products.index', ['search' => 'Semoir']) }}" class="hover:text-white">Semoirs et repiqueuses</a></li>
-                            <li><a href="{{ route('products.index', ['category' => 7]) }}" class="hover:text-white">Tous les matériels</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'materiel-agricole']) }}" class="hover:text-white">Tous les matériels</a></li>
                         </ul>
                     </div>
 
@@ -86,11 +86,11 @@
                     <div>
                         <h3 class="text-xs font-bold uppercase tracking-wider text-white">Élevage &amp; Récoltes</h3>
                         <ul class="mt-2.5 space-y-1.5 text-slate-300">
-                            <li><a href="{{ route('products.index', ['category' => 6]) }}" class="hover:text-white">Élevage, ovins &amp; bovins</a></li>
-                            <li><a href="{{ route('products.index', ['category' => 1]) }}" class="hover:text-white">Céréales &amp; riz de la vallée</a></li>
-                            <li><a href="{{ route('products.index', ['category' => 3]) }}" class="hover:text-white">Légumes &amp; oignons des Niayes</a></li>
-                            <li><a href="{{ route('products.index', ['category' => 5]) }}" class="hover:text-white">Engrais, intrants &amp; semences</a></li>
-                            <li><a href="{{ route('products.index', ['category' => 2]) }}" class="hover:text-white">Fruits du terroir</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'elevage']) }}" class="hover:text-white">Élevage, ovins &amp; bovins</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'cereales']) }}" class="hover:text-white">Céréales &amp; riz de la vallée</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'legumes']) }}" class="hover:text-white">Légumes &amp; oignons des Niayes</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'intrants']) }}" class="hover:text-white">Engrais, intrants &amp; semences</a></li>
+                            <li><a href="{{ route('products.index', ['category' => 'fruits']) }}" class="hover:text-white">Fruits du terroir</a></li>
                         </ul>
                     </div>
 
