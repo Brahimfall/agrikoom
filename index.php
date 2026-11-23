@@ -5,6 +5,14 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// Auto-purge stale route cache on OVH if routes have been modified
+if (file_exists($routeCache = __DIR__.'/bootstrap/cache/routes-v7.php')) {
+    $webRoutes = __DIR__.'/routes/web.php';
+    if (! file_exists($webRoutes) || filemtime($webRoutes) > filemtime($routeCache) || strpos(file_get_contents($routeCache), 'admin.categories') === false) {
+        @unlink($routeCache);
+    }
+}
+
 // Determine if the application is in maintenance mode...
 // NOTE: This index.php is at www/ root on OVH (no public/ subfolder needed)
 if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {

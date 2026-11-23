@@ -32,7 +32,7 @@ class Category extends Model
 
     public function getImageUrlAttribute(): string
     {
-        $val = $this->image ?? null;
+        $val = $this->attributes['image'] ?? null;
         if (! empty($val)) {
             if (str_starts_with($val, 'http')) {
                 return $val;

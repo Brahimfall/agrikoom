@@ -78,6 +78,18 @@ class Listing extends Model
 
     public function getIsAvailableImmediatelyAttribute(): bool
     {
-        return is_null($this->available_from) || $this->available_from->lte(today());
+        if (empty($this->available_from)) {
+            return true;
+        }
+
+        try {
+            $date = $this->available_from instanceof \DateTimeInterface
+                ? $this->available_from
+                : \Illuminate\Support\Carbon::parse($this->available_from);
+
+            return $date->lte(today());
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 }

@@ -20,8 +20,6 @@ class CategoryController extends Controller
     {
         $this->authorizeAdmin($request);
 
-        $this->ensureSchemaUpToDate();
-
         $query = Category::query()
             ->withCount([
                 'listings',
@@ -249,17 +247,6 @@ class CategoryController extends Controller
     private function authorizeAdmin(Request $request): void
     {
         abort_unless($request->user()?->is_admin, 403);
-    }
-
-    private function ensureSchemaUpToDate(): void
-    {
-        if (! Schema::hasColumn('categories', 'image')) {
-            try {
-                Artisan::call('migrate', ['--force' => true]);
-            } catch (\Throwable $e) {
-                // Ignore if migration fails in restricted environment
-            }
-        }
     }
 
     /**
