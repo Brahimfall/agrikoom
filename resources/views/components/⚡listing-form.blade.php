@@ -38,13 +38,13 @@ new class extends Component
 
     public function mount(?Listing $listing = null): void
     {
-        if (request('vendor_mode') === 'new') {
+        if (request()->query('vendor_mode') === 'new' || request('vendor_mode') === 'new') {
             $this->vendor_mode = 'new';
         }
 
         if (! $listing?->exists) {
             $this->location = Auth::user()->location ?? '';
-            $this->user_id = Auth::id();
+            $this->user_id = $this->vendor_mode === 'new' ? null : Auth::id();
             return;
         }
 
@@ -262,7 +262,9 @@ new class extends Component
 <div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg">
     <form wire:submit.prevent="save" class="space-y-6 p-6">
         @if (Auth::user()?->is_admin)
-            <div class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
+            <div x-data="{ mode: '{{ $vendor_mode }}' }"
+                 x-init="$watch('$wire.vendor_mode', val => { if (val) mode = val })"
+                 class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
                 <div class="flex items-center justify-between gap-3 mb-2">
                     <div class="flex items-center gap-2">
                         <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#7D5A50] text-white text-xs font-bold">★</span>
@@ -277,81 +279,85 @@ new class extends Component
                 <!-- Bascule Mode Existant vs Nouveau Client / Vendeur -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                     <button type="button"
-                            wire:click="setVendorMode('existing')"
-                            class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition text-left {{ $vendor_mode === 'existing' ? 'bg-[#7D5A50] text-white border-[#7D5A50] shadow-xs' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50' }}">
+                            @click="mode = 'existing'; $wire.setVendorMode('existing')"
+                            :class="mode === 'existing' ? 'bg-[#7D5A50] text-white border-[#7D5A50] shadow-xs' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'"
+                            class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition text-left cursor-pointer">
                         <span>👤 Vendeur existant</span>
                         <span class="text-[10px] opacity-80">(Choisir dans la liste)</span>
                     </button>
                     <button type="button"
-                            wire:click="setVendorMode('new')"
-                            class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition text-left {{ $vendor_mode === 'new' ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' }}">
+                            @click="mode = 'new'; $wire.setVendorMode('new')"
+                            :class="mode === 'new' ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'"
+                            class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition text-left cursor-pointer">
                         <span>✨ Nouveau client</span>
                         <span class="text-[10px] font-semibold opacity-90">(Qui n'existe pas encore)</span>
                     </button>
                 </div>
 
-                @if ($vendor_mode === 'existing')
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Sélectionnez le vendeur propriétaire :</label>
-                            <select wire:model.live="user_id" class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
-                                <option value="{{ Auth::id() }}">★ Moi-même (Super Admin - {{ Auth::user()->name }})</option>
-                                <option value="-1">➕ Créer un nouveau client...</option>
-                                <optgroup label="── Vendeurs enregistrés ──">
-                                    @foreach ($vendors as $v)
-                                        @if ($v->id !== Auth::id())
-                                            <option value="{{ $v->id }}">
-                                                {{ $v->name }} — {{ $v->phone ?: $v->email }} ({{ $v->location ?: 'Sénégal' }})
-                                            </option>
-                                        @endif
-                                    @endforeach
-                                </optgroup>
-                            </select>
-                        </div>
-                        @if ($selectedVendor)
-                            <div class="rounded-lg bg-white p-3 border border-slate-200/90 text-xs shadow-2xs">
-                                <div class="font-bold text-slate-900">{{ $selectedVendor->name }}</div>
-                                <div class="text-slate-600 text-[11px] mt-0.5">
-                                    <span>📞 {{ $selectedVendor->phone ?: 'Sans numéro' }}</span>
-                                    @if ($selectedVendor->location)
-                                        <span>&bull; 📍 {{ $selectedVendor->location }}</span>
+                {{-- Bloc Vendeur Existant --}}
+                <div x-show="mode === 'existing'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Sélectionnez le vendeur propriétaire :</label>
+                        <select wire:model.live="user_id"
+                                @change="if ($event.target.value == -1 || $event.target.value === '-1') { mode = 'new'; $wire.setVendorMode('new'); }"
+                                class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
+                            <option value="{{ Auth::id() }}">★ Moi-même (Super Admin - {{ Auth::user()->name }})</option>
+                            <option value="-1">➕ Créer un nouveau client...</option>
+                            <optgroup label="── Vendeurs enregistrés ──">
+                                @foreach ($vendors as $v)
+                                    @if ($v->id !== Auth::id())
+                                        <option value="{{ $v->id }}">
+                                            {{ $v->name }} — {{ $v->phone ?: $v->email }} ({{ $v->location ?: 'Sénégal' }})
+                                        </option>
                                     @endif
-                                </div>
-                            </div>
-                        @endif
+                                @endforeach
+                            </optgroup>
+                        </select>
                     </div>
-                @else
-                    <div class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-xs">
-                        <div class="flex items-center justify-between">
-                            <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
-                                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                <span>Coordonnées du nouveau client / vendeur :</span>
-                            </div>
-                            <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                Compte client créé automatiquement
-                            </span>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            <div>
-                                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nom complet du client *</label>
-                                <input type="text" wire:model.live.debounce.300ms="vendor_new_name" placeholder="Ex: Samba Diallo" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
-                                @error('vendor_new_name') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Téléphone / WhatsApp *</label>
-                                <input type="tel" wire:model.live.debounce.300ms="vendor_new_phone" placeholder="Ex: +221 77 123 45 67" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
-                                @error('vendor_new_phone') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-semibold text-slate-700 mb-1">Localisation / Région</label>
-                                <input type="text" wire:model.live.debounce.300ms="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                    @if ($selectedVendor)
+                        <div class="rounded-lg bg-white p-3 border border-slate-200/90 text-xs shadow-2xs">
+                            <div class="font-bold text-slate-900">{{ $selectedVendor->name }}</div>
+                            <div class="text-slate-600 text-[11px] mt-0.5">
+                                <span>📞 {{ $selectedVendor->phone ?: 'Sans numéro' }}</span>
+                                @if ($selectedVendor->location)
+                                    <span>&bull; 📍 {{ $selectedVendor->location }}</span>
+                                @endif
                             </div>
                         </div>
-                        <p class="text-[11px] text-slate-500 italic">
-                            💡 Dès validation, ce client sera créé sur la plateforme et les acheteurs pourront le contacter directement sur son numéro WhatsApp / Téléphone.
-                        </p>
+                    @endif
+                </div>
+
+                {{-- Bloc Nouveau Client / Vendeur --}}
+                <div x-show="mode === 'new'" style="{{ $vendor_mode === 'new' ? '' : 'display: none;' }}" class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            <span>Coordonnées du nouveau client / vendeur :</span>
+                        </div>
+                        <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            Compte client créé automatiquement
+                        </span>
                     </div>
-                @endif
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nom complet du client *</label>
+                            <input type="text" wire:model.live.debounce.300ms="vendor_new_name" placeholder="Ex: Samba Diallo" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                            @error('vendor_new_name') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Téléphone / WhatsApp *</label>
+                            <input type="tel" wire:model.live.debounce.300ms="vendor_new_phone" placeholder="Ex: +221 77 123 45 67" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                            @error('vendor_new_phone') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">Localisation / Région</label>
+                            <input type="text" wire:model.live.debounce.300ms="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 italic">
+                        💡 Dès validation, ce client sera créé sur la plateforme et les acheteurs pourront le contacter directement sur son numéro WhatsApp / Téléphone.
+                    </p>
+                </div>
             </div>
         @endif
 
