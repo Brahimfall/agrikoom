@@ -4,6 +4,8 @@ use App\Models\Category;
 use App\Models\Listing;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -69,15 +71,31 @@ new class extends Component
         }
     }
 
+    public function setVendorMode(string $mode): void
+    {
+        $this->vendor_mode = $mode;
+        if ($mode === 'new') {
+            $this->user_id = null;
+            if (empty($this->location) && ! empty($this->vendor_new_location)) {
+                $this->location = $this->vendor_new_location;
+            }
+        } else {
+            $this->user_id = Auth::id();
+            if (empty($this->location)) {
+                $this->location = Auth::user()->location ?? '';
+            }
+        }
+    }
+
     public function updatedUserId($val): void
     {
-        if ($val === -1) {
-            $this->vendor_mode = 'new';
-            $this->user_id = null;
+        if ($val == -1 || $val === '-1') {
+            $this->setVendorMode('new');
             return;
         }
 
-        if ($val) {
+        if ($val && (int)$val > 0) {
+            $this->vendor_mode = 'existing';
             $vendor = User::find($val);
             if ($vendor && ! empty($vendor->location) && empty($this->location)) {
                 $this->location = $vendor->location;
@@ -94,6 +112,14 @@ new class extends Component
 
     public function save()
     {
+        if (Auth::user()?->is_admin && $this->vendor_mode === 'new') {
+            if (empty($this->location) && ! empty($this->vendor_new_location)) {
+                $this->location = trim($this->vendor_new_location);
+            } elseif (empty($this->vendor_new_location) && ! empty($this->location)) {
+                $this->vendor_new_location = trim($this->location);
+            }
+        }
+
         $validationRules = [
             'type' => ['required', 'in:offer,request'],
             'title' => ['required', 'string', 'max:160'],
@@ -114,14 +140,26 @@ new class extends Component
             $validationRules['available_from'] = ['required', 'date'];
         }
 
-        $data = $this->validate($validationRules);
+        $customMessages = [];
+
+        if (Auth::user()?->is_admin && $this->vendor_mode === 'new') {
+            $validationRules['vendor_new_name'] = ['required', 'string', 'max:120'];
+            $validationRules['vendor_new_phone'] = ['required', 'string', 'max:30'];
+            $validationRules['vendor_new_email'] = ['nullable', 'email', 'max:120'];
+            $validationRules['vendor_new_location'] = ['nullable', 'string', 'max:255'];
+
+            $customMessages['vendor_new_name.required'] = 'Le nom du nouveau client/vendeur est obligatoire.';
+            $customMessages['vendor_new_phone.required'] = 'Le numéro de téléphone du client est obligatoire pour les contacts acheteurs.';
+        }
+
+        $data = $this->validate($validationRules, $customMessages);
 
         $existingPhotoCount = $this->listing?->exists
             ? $this->listing->photos()->count()
             : 0;
 
         if ($existingPhotoCount + count($this->photos) > 5) {
-            $this->addError('photos', 'Une annonce ne peut pas depasser 5 photos.');
+            $this->addError('photos', 'Une annonce ne peut pas dépasser 5 photos.');
 
             return;
         }
@@ -130,38 +168,42 @@ new class extends Component
 
         if (Auth::user()?->is_admin) {
             if ($this->vendor_mode === 'new') {
-                $this->validate([
-                    'vendor_new_name' => ['required', 'string', 'max:120'],
-                    'vendor_new_phone' => ['required', 'string', 'max:30'],
-                    'vendor_new_email' => ['nullable', 'email', 'max:120'],
-                    'vendor_new_location' => ['nullable', 'string', 'max:255'],
-                ], [
-                    'vendor_new_name.required' => 'Le nom du nouveau client/vendeur est obligatoire.',
-                    'vendor_new_phone.required' => 'Le numéro de téléphone du client est obligatoire pour les contacts acheteurs.',
-                ]);
+                $rawPhone = trim($this->vendor_new_phone);
+                $digits = preg_replace('/\D+/', '', $rawPhone);
 
-                $phone = trim($this->vendor_new_phone);
-                $newVendor = User::where('phone', $phone)->first();
+                // Find existing vendor by phone or by last 9 digits
+                $newVendor = User::where('phone', $rawPhone)->first();
+                if (! $newVendor && strlen($digits) >= 9) {
+                    $newVendor = User::where('phone', 'LIKE', '%' . substr($digits, -9))->first();
+                }
 
                 if (! $newVendor) {
+                    $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
                     $newVendor = User::create([
                         'name' => trim($this->vendor_new_name),
-                        'phone' => $phone,
-                        'email' => ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null,
+                        'phone' => $rawPhone,
+                        'email' => $emailVal,
+                        'password' => Hash::make(Str::random(32)),
                         'location' => trim($this->vendor_new_location) ?: $data['location'],
                         'actor_type' => 'producer',
                         'phone_verified_at' => now(),
                     ]);
                 } else {
-                    $newVendor->update([
-                        'name' => trim($this->vendor_new_name) ?: $newVendor->name,
-                        'location' => trim($this->vendor_new_location) ?: $newVendor->location,
-                    ]);
+                    $updateData = [];
+                    if (! empty($this->vendor_new_name)) {
+                        $updateData['name'] = trim($this->vendor_new_name);
+                    }
+                    if (! empty($this->vendor_new_location)) {
+                        $updateData['location'] = trim($this->vendor_new_location);
+                    }
+                    if (! empty($updateData)) {
+                        $newVendor->update($updateData);
+                    }
                 }
 
                 $targetUserId = $newVendor->id;
-            } elseif ($this->user_id) {
-                $targetUserId = $this->user_id;
+            } elseif ($this->user_id && (int) $this->user_id > 0) {
+                $targetUserId = (int) $this->user_id;
             }
         } elseif ($this->listing?->exists) {
             $targetUserId = $this->listing->user_id;
@@ -171,7 +213,14 @@ new class extends Component
             ? now()->toDateString()
             : ($this->available_from ?: now()->toDateString());
 
-        $listingData = collect($data)->except(['photos', 'availability_type'])->merge([
+        $listingData = collect($data)->except([
+            'photos',
+            'availability_type',
+            'vendor_new_name',
+            'vendor_new_phone',
+            'vendor_new_email',
+            'vendor_new_location',
+        ])->merge([
             'user_id' => $targetUserId,
             'quantity' => ($data['quantity'] ?? '') === '' ? null : $data['quantity'],
             'price' => ($data['price'] ?? '') === '' ? null : $data['price'],
@@ -228,13 +277,13 @@ new class extends Component
                 <!-- Bascule Mode Existant vs Nouveau Client / Vendeur -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                     <button type="button"
-                            wire:click="$set('vendor_mode', 'existing')"
+                            wire:click="setVendorMode('existing')"
                             class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition text-left {{ $vendor_mode === 'existing' ? 'bg-[#7D5A50] text-white border-[#7D5A50] shadow-xs' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50' }}">
                         <span>👤 Vendeur existant</span>
                         <span class="text-[10px] opacity-80">(Choisir dans la liste)</span>
                     </button>
                     <button type="button"
-                            wire:click="$set('vendor_mode', 'new')"
+                            wire:click="setVendorMode('new')"
                             class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition text-left {{ $vendor_mode === 'new' ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs' : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' }}">
                         <span>✨ Nouveau client</span>
                         <span class="text-[10px] font-semibold opacity-90">(Qui n'existe pas encore)</span>
@@ -285,17 +334,17 @@ new class extends Component
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nom complet du client *</label>
-                                <input type="text" wire:model="vendor_new_name" placeholder="Ex: Samba Diallo" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                                <input type="text" wire:model.live.debounce.300ms="vendor_new_name" placeholder="Ex: Samba Diallo" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                                 @error('vendor_new_name') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
                             </div>
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">Téléphone / WhatsApp *</label>
-                                <input type="tel" wire:model="vendor_new_phone" placeholder="Ex: +221 77 123 45 67" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                                <input type="tel" wire:model.live.debounce.300ms="vendor_new_phone" placeholder="Ex: +221 77 123 45 67" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                                 @error('vendor_new_phone') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
                             </div>
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">Localisation / Région</label>
-                                <input type="text" wire:model.live="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                                <input type="text" wire:model.live.debounce.300ms="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                             </div>
                         </div>
                         <p class="text-[11px] text-slate-500 italic">
