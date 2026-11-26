@@ -79,4 +79,31 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/deploy-now-agrikoom', function () {
+    if (request('key') !== 'agrikoom2026secret') {
+        abort(403);
+    }
+
+    $output = [];
+    $output[] = "=== GIT PULL ===";
+    $output[] = shell_exec('git pull origin main 2>&1');
+
+    $output[] = "=== VIEW CLEAR ===";
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+
+    $output[] = "=== ROUTE CLEAR ===";
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+
+    $output[] = "=== CACHE CLEAR ===";
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    $output[] = trim(\Illuminate\Support\Facades\Artisan::output());
+
+    $output[] = "=== CURRENT COMMIT ===";
+    $output[] = shell_exec('git log -1 --oneline 2>&1');
+
+    return response('<pre>' . implode("\n", $output) . '</pre>');
+});
+
 require __DIR__.'/auth.php';
