@@ -103,11 +103,11 @@ Route::get('/deploy-now-agrikoom', function () {
     $output[] = "=== CURRENT COMMIT ===";
     $output[] = shell_exec('git log -1 --oneline 2>&1');
 
-    $output[] = "=== LARAVEL LOG (LAST 60 LINES) ===";
+    $output[] = "=== LARAVEL LOG (LAST 4000 CHARACTERS) ===";
     $logFile = storage_path('logs/laravel.log');
     if (file_exists($logFile)) {
-        $lines = file($logFile);
-        $output[] = implode('', array_slice($lines, -60));
+        $content = file_get_contents($logFile);
+        $output[] = substr($content, -4000);
     } else {
         $output[] = "No log file found.";
     }
