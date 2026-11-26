@@ -128,6 +128,19 @@ new class extends Component
 
     public function save()
     {
+        // Remplissage automatique intelligent pour éviter tout blocage de validation
+        if (empty($this->title) && ! empty($this->product)) {
+            $this->title = $this->product;
+        } elseif (empty($this->product) && ! empty($this->title)) {
+            $this->product = $this->title;
+        }
+
+        if (empty($this->location)) {
+            $this->location = ! empty($this->vendor_new_location)
+                ? trim($this->vendor_new_location)
+                : (Auth::user()?->location ?: 'Sénégal');
+        }
+
         // Détection automatique : si des coordonnées de nouveau client sont saisies,
         // on force impérativement le mode 'new' et on annule l'user_id de l'admin.
         if (Auth::user()?->is_admin) {
@@ -206,6 +219,10 @@ new class extends Component
 
                 if (! $newVendor) {
                     $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
+                    if ($emailVal && User::where('email', $emailVal)->exists()) {
+                        $emailVal = null;
+                    }
+
                     $newVendor = User::create([
                         'name' => trim($this->vendor_new_name),
                         'phone' => $rawPhone,
@@ -276,23 +293,32 @@ new class extends Component
             'status' => $this->listing?->status ?? 'active',
         ])->all();
 
-        $listing = $this->listing?->exists
-            ? tap($this->listing)->update($listingData)
-            : Listing::create($listingData);
+        try {
+            $listing = $this->listing?->exists
+                ? tap($this->listing)->update($listingData)
+                : Listing::create($listingData);
 
-        $lastSortOrder = $listing->photos()->max('sort_order');
-        $nextSortOrder = $lastSortOrder === null ? 0 : (int) $lastSortOrder + 1;
+            $lastSortOrder = $listing->photos()->max('sort_order');
+            $nextSortOrder = $lastSortOrder === null ? 0 : (int) $lastSortOrder + 1;
 
-        foreach ($this->photos as $index => $photo) {
-            $listing->photos()->create([
-                'path' => $photo->store('listings', 'public'),
-                'sort_order' => $nextSortOrder + $index,
+            foreach ($this->photos as $index => $photo) {
+                $listing->photos()->create([
+                    'path' => $photo->store('listings', 'public'),
+                    'sort_order' => $nextSortOrder + $index,
+                ]);
+            }
+
+            session()->flash('status', 'Annonce enregistrée avec succès.');
+
+            return $this->redirect(route('listings.show', $listing), navigate: false);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Erreur enregistrement annonce: ' . $e->getMessage(), [
+                'exception' => $e,
             ]);
+            $this->addError('general', 'Une erreur est survenue lors de l\'enregistrement : ' . $e->getMessage());
+
+            return null;
         }
-
-        session()->flash('status', 'Annonce enregistrée avec succès.');
-
-        return redirect()->route('listings.show', $listing);
     }
 
     public function render()
@@ -308,6 +334,22 @@ new class extends Component
 
 <div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg">
     <form wire:submit.prevent="save" class="space-y-6 p-6">
+        @if ($errors->any())
+            <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm" x-data x-init="$el.scrollIntoView({ behavior: 'smooth' })">
+                <div class="flex items-center gap-2 font-bold mb-1.5 text-red-900">
+                    <svg class="h-5 w-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span>Veuillez vérifier les points suivants avant d'enregistrer :</span>
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-xs text-red-700">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if (Auth::user()?->is_admin)
             <div x-data="{ mode: '{{ $vendor_mode }}' }"
                  x-init="$watch('$wire.vendor_mode', val => { if (val) mode = val })"
@@ -518,8 +560,17 @@ new class extends Component
 
         <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
             <a href="{{ route('listings.mine') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Annuler</a>
-            <button type="submit" class="rounded-md bg-[#7D5A50] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6b4d44]" wire:loading.attr="disabled">
-                Enregistrer
+            <button type="submit" 
+                    class="inline-flex items-center justify-center gap-2 rounded-md bg-[#7D5A50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6b4d44] disabled:opacity-50 transition cursor-pointer" 
+                    wire:loading.attr="disabled">
+                <span wire:loading.remove wire:target="save">Enregistrer l'annonce</span>
+                <span wire:loading wire:target="save" class="inline-flex items-center gap-2">
+                    <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Enregistrement en cours...</span>
+                </span>
             </button>
         </div>
     </form>
