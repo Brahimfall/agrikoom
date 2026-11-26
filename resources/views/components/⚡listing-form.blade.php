@@ -328,7 +328,8 @@ new class extends Component
         @endif
 
         @if (Auth::user()?->is_admin)
-            <div x-data="{ mode: @entangle('vendor_mode').live }"
+            <div x-data="{ mode: '{{ $vendor_mode }}' }"
+                 x-init="$watch('$wire.vendor_mode', val => { mode = val; })"
                  class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
                 <div class="flex items-center justify-between gap-3 mb-2">
                     <div class="flex items-center gap-2">
@@ -393,7 +394,9 @@ new class extends Component
                 </div>
 
                 {{-- Bloc Nouveau Client / Vendeur --}}
-                <div x-show="mode === 'new'" x-cloak class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-xs">
+                <div x-show="mode === 'new'"
+                     style="{{ $vendor_mode === 'new' ? '' : 'display:none;' }}"
+                     class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-xs">
                     <div class="flex items-center justify-between">
                         <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
