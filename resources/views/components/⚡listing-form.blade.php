@@ -103,29 +103,6 @@ new class extends Component
         }
     }
 
-    public function updatedVendorNewLocation($val): void
-    {
-        if ($val && empty($this->location)) {
-            $this->location = $val;
-        }
-    }
-
-    public function updatedVendorNewName($val): void
-    {
-        if (! empty(trim((string) $val))) {
-            $this->vendor_mode = 'new';
-            $this->user_id = null;
-        }
-    }
-
-    public function updatedVendorNewPhone($val): void
-    {
-        if (! empty(trim((string) $val))) {
-            $this->vendor_mode = 'new';
-            $this->user_id = null;
-        }
-    }
-
     public function save()
     {
         // Remplissage automatique intelligent pour éviter tout blocage de validation
@@ -351,8 +328,7 @@ new class extends Component
         @endif
 
         @if (Auth::user()?->is_admin)
-            <div x-data="{ mode: '{{ $vendor_mode }}' }"
-                 x-init="$watch('$wire.vendor_mode', val => { if (val) mode = val })"
+            <div x-data="{ mode: @entangle('vendor_mode').live }"
                  class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
                 <div class="flex items-center justify-between gap-3 mb-2">
                     <div class="flex items-center gap-2">
@@ -364,8 +340,6 @@ new class extends Component
                 <p class="text-xs text-slate-600 mb-4">
                     Vous pouvez publier ce produit au nom d'un vendeur ou producteur tiers.
                 </p>
-
-                <input type="hidden" name="vendor_mode" wire:model="vendor_mode">
 
                 <!-- Bascule Mode Existant vs Nouveau Client / Vendeur -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
@@ -419,7 +393,7 @@ new class extends Component
                 </div>
 
                 {{-- Bloc Nouveau Client / Vendeur --}}
-                <div x-show="mode === 'new'" style="{{ $vendor_mode === 'new' ? '' : 'display: none;' }}" class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-xs">
+                <div x-show="mode === 'new'" x-cloak class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-xs">
                     <div class="flex items-center justify-between">
                         <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
                             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
@@ -432,17 +406,17 @@ new class extends Component
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nom complet du client *</label>
-                            <input type="text" wire:model.live.debounce.300ms="vendor_new_name" placeholder="Ex: Samba Diallo" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                            <input type="text" wire:model="vendor_new_name" placeholder="Ex: Samba Diallo" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                             @error('vendor_new_name') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Téléphone / WhatsApp *</label>
-                            <input type="tel" wire:model.live.debounce.300ms="vendor_new_phone" placeholder="Ex: +221 77 123 45 67" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                            <input type="tel" wire:model="vendor_new_phone" placeholder="Ex: +221 77 123 45 67" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                             @error('vendor_new_phone') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Localisation / Région</label>
-                            <input type="text" wire:model.live.debounce.300ms="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
+                            <input type="text" wire:model="vendor_new_location" placeholder="Ex: Thiès, Niayes" class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
                     </div>
                     <p class="text-[11px] text-slate-500 italic">
