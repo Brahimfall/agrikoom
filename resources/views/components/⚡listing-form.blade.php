@@ -110,8 +110,33 @@ new class extends Component
         }
     }
 
+    public function updatedVendorNewName($val): void
+    {
+        if (! empty(trim((string) $val))) {
+            $this->vendor_mode = 'new';
+            $this->user_id = null;
+        }
+    }
+
+    public function updatedVendorNewPhone($val): void
+    {
+        if (! empty(trim((string) $val))) {
+            $this->vendor_mode = 'new';
+            $this->user_id = null;
+        }
+    }
+
     public function save()
     {
+        // Détection automatique : si des coordonnées de nouveau client sont saisies,
+        // on force impérativement le mode 'new' et on annule l'user_id de l'admin.
+        if (Auth::user()?->is_admin) {
+            if (! empty(trim($this->vendor_new_name)) || ! empty(trim($this->vendor_new_phone))) {
+                $this->vendor_mode = 'new';
+                $this->user_id = null;
+            }
+        }
+
         if (Auth::user()?->is_admin && $this->vendor_mode === 'new') {
             if (empty($this->location) && ! empty($this->vendor_new_location)) {
                 $this->location = trim($this->vendor_new_location);
@@ -171,10 +196,12 @@ new class extends Component
                 $rawPhone = trim($this->vendor_new_phone);
                 $digits = preg_replace('/\D+/', '', $rawPhone);
 
-                // Find existing vendor by phone or by last 9 digits
-                $newVendor = User::where('phone', $rawPhone)->first();
+                // Rechercher un vendeur existant (exclure le super admin lui-même)
+                $newVendor = User::where('phone', $rawPhone)->where('id', '!=', Auth::id())->first();
                 if (! $newVendor && strlen($digits) >= 9) {
-                    $newVendor = User::where('phone', 'LIKE', '%' . substr($digits, -9))->first();
+                    $newVendor = User::where('phone', 'LIKE', '%' . substr($digits, -9))
+                        ->where('id', '!=', Auth::id())
+                        ->first();
                 }
 
                 if (! $newVendor) {
@@ -186,6 +213,7 @@ new class extends Component
                         'password' => Hash::make(Str::random(32)),
                         'location' => trim($this->vendor_new_location) ?: $data['location'],
                         'actor_type' => 'producer',
+                        'is_admin' => false,
                         'phone_verified_at' => now(),
                     ]);
                 } else {
@@ -207,6 +235,25 @@ new class extends Component
             }
         } elseif ($this->listing?->exists) {
             $targetUserId = $this->listing->user_id;
+        }
+
+        // Filet de sécurité absolu : si mode nouveau client avec un nom saisi,
+        // il est strictement interdit que l'annonce soit liée à l'admin
+        if (Auth::user()?->is_admin && $this->vendor_mode === 'new') {
+            if ($targetUserId === Auth::id() && ! empty(trim($this->vendor_new_name))) {
+                $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
+                $fallbackVendor = User::create([
+                    'name' => trim($this->vendor_new_name),
+                    'phone' => trim($this->vendor_new_phone),
+                    'email' => $emailVal,
+                    'password' => Hash::make(Str::random(32)),
+                    'location' => trim($this->vendor_new_location) ?: $data['location'],
+                    'actor_type' => 'producer',
+                    'is_admin' => false,
+                    'phone_verified_at' => now(),
+                ]);
+                $targetUserId = $fallbackVendor->id;
+            }
         }
 
         $finalAvailableFrom = $this->availability_type === 'immediate'
@@ -275,6 +322,8 @@ new class extends Component
                 <p class="text-xs text-slate-600 mb-4">
                     Vous pouvez publier ce produit au nom d'un vendeur ou producteur tiers.
                 </p>
+
+                <input type="hidden" name="vendor_mode" wire:model="vendor_mode">
 
                 <!-- Bascule Mode Existant vs Nouveau Client / Vendeur -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
