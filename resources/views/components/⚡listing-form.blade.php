@@ -28,7 +28,7 @@ new class extends Component
     public string $available_from = '';
     public array $photos = [];
 
-    // Super Admin
+    // Super Admin options
     public ?int $user_id = null;
     public string $vendor_mode = 'existing';
     public string $vendor_new_name = '';
@@ -77,6 +77,9 @@ new class extends Component
         $this->vendor_mode = $mode;
         if ($mode === 'new') {
             $this->user_id = null;
+            if (empty($this->location) && ! empty($this->vendor_new_location)) {
+                $this->location = $this->vendor_new_location;
+            }
         } else {
             $this->user_id = Auth::id();
             if (empty($this->location)) {
@@ -102,21 +105,20 @@ new class extends Component
 
     public function save()
     {
-        // Auto-fill title/product
+        // Remplissage automatique intelligent pour éviter tout blocage de validation
         if (empty($this->title) && ! empty($this->product)) {
             $this->title = $this->product;
         } elseif (empty($this->product) && ! empty($this->title)) {
             $this->product = $this->title;
         }
 
-        // Auto-fill location
         if (empty($this->location)) {
             $this->location = ! empty($this->vendor_new_location)
                 ? trim($this->vendor_new_location)
                 : (Auth::user()?->location ?: 'Sénégal');
         }
 
-        // Si un nom/téléphone de nouveau client est présent → forcer mode 'new'
+        // Si l'admin a renseigné un nom ou téléphone de nouveau client, on force le mode 'new'
         if (Auth::user()?->is_admin) {
             if (! empty(trim($this->vendor_new_name)) || ! empty(trim($this->vendor_new_phone))) {
                 $this->vendor_mode = 'new';
@@ -154,12 +156,12 @@ new class extends Component
 
         $customMessages = [];
         if (Auth::user()?->is_admin && $this->vendor_mode === 'new') {
-            $validationRules['vendor_new_name']  = ['required', 'string', 'max:120'];
-            $validationRules['vendor_new_phone'] = ['required', 'string', 'max:30'];
-            $validationRules['vendor_new_email'] = ['nullable', 'email', 'max:120'];
+            $validationRules['vendor_new_name']     = ['required', 'string', 'max:120'];
+            $validationRules['vendor_new_phone']    = ['required', 'string', 'max:30'];
+            $validationRules['vendor_new_email']    = ['nullable', 'email', 'max:120'];
             $validationRules['vendor_new_location'] = ['nullable', 'string', 'max:255'];
-            $customMessages['vendor_new_name.required']  = 'Le nom du nouveau client est obligatoire.';
-            $customMessages['vendor_new_phone.required'] = 'Le téléphone du client est obligatoire.';
+            $customMessages['vendor_new_name.required']  = 'Le nom du nouveau client/vendeur est obligatoire.';
+            $customMessages['vendor_new_phone.required'] = 'Le numéro de téléphone du client est obligatoire.';
         }
 
         $data = $this->validate($validationRules, $customMessages);
@@ -177,6 +179,7 @@ new class extends Component
                 $rawPhone = trim($this->vendor_new_phone);
                 $digits   = preg_replace('/\D+/', '', $rawPhone);
 
+                // Rechercher un vendeur existant (exclure le super admin lui-même)
                 $newVendor = User::where('phone', $rawPhone)->where('id', '!=', Auth::id())->first();
                 if (! $newVendor && strlen($digits) >= 9) {
                     $newVendor = User::where('phone', 'LIKE', '%' . substr($digits, -9))
@@ -214,20 +217,22 @@ new class extends Component
             $targetUserId = $this->listing->user_id;
         }
 
-        // Filet de sécurité : jamais liée à l'admin si mode 'new'
+        // Filet de sécurité absolu : jamais lié à l'admin si mode nouveau client
         if (Auth::user()?->is_admin && $this->vendor_mode === 'new' && $targetUserId === Auth::id()) {
-            $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
-            $fallback = User::create([
-                'name'              => trim($this->vendor_new_name),
-                'phone'             => trim($this->vendor_new_phone),
-                'email'             => $emailVal,
-                'password'          => Hash::make(Str::random(32)),
-                'location'          => trim($this->vendor_new_location) ?: $data['location'],
-                'actor_type'        => 'producer',
-                'is_admin'          => false,
-                'phone_verified_at' => now(),
-            ]);
-            $targetUserId = $fallback->id;
+            if (! empty(trim($this->vendor_new_name))) {
+                $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
+                $fallback = User::create([
+                    'name'              => trim($this->vendor_new_name),
+                    'phone'             => trim($this->vendor_new_phone),
+                    'email'             => $emailVal,
+                    'password'          => Hash::make(Str::random(32)),
+                    'location'          => trim($this->vendor_new_location) ?: $data['location'],
+                    'actor_type'        => 'producer',
+                    'is_admin'          => false,
+                    'phone_verified_at' => now(),
+                ]);
+                $targetUserId = $fallback->id;
+            }
         }
 
         $finalAvailableFrom = $this->availability_type === 'immediate'
@@ -238,12 +243,12 @@ new class extends Component
             'photos', 'availability_type',
             'vendor_new_name', 'vendor_new_phone', 'vendor_new_email', 'vendor_new_location',
         ])->merge([
-            'user_id'       => $targetUserId,
-            'quantity'      => ($data['quantity'] ?? '') === '' ? null : $data['quantity'],
-            'price'         => ($data['price'] ?? '') === '' ? null : $data['price'],
-            'available_from'=> $finalAvailableFrom,
-            'expires_at'    => $this->listing?->expires_at ?? now()->addDays(30),
-            'status'        => $this->listing?->status ?? 'active',
+            'user_id'        => $targetUserId,
+            'quantity'       => ($data['quantity'] ?? '') === '' ? null : $data['quantity'],
+            'price'          => ($data['price'] ?? '') === '' ? null : $data['price'],
+            'available_from' => $finalAvailableFrom,
+            'expires_at'     => $this->listing?->expires_at ?? now()->addDays(30),
+            'status'         => $this->listing?->status ?? 'active',
         ])->all();
 
         try {
@@ -286,51 +291,19 @@ new class extends Component
 };
 ?>
 
-{{-- ============================================================
-     UN SEUL x-data au niveau du <div> racine.
-     Toutes les variables Alpine (vendorMode, vendorName…)
-     sont accessibles partout dans le template, y compris
-     depuis le bouton Submit qui appelle beforeSubmit().
-     ============================================================ --}}
-<div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg"
-     x-data="{
-         vendorMode: '{{ $vendor_mode }}',
-         vendorName: '{{ addslashes($vendor_new_name) }}',
-         vendorPhone: '{{ addslashes($vendor_new_phone) }}',
-         vendorLocation: '{{ addslashes($vendor_new_location) }}',
-         setMode(val) {
-             this.vendorMode = val;
-             $wire.set('vendor_mode', val);
-             if (val === 'new') {
-                 $wire.set('user_id', null);
-             } else {
-                 $wire.set('user_id', {{ (int) Auth::id() }});
-             }
-         },
-         beforeSubmit() {
-             if (this.vendorMode === 'new') {
-                 $wire.set('vendor_new_name',     this.vendorName     || '');
-                 $wire.set('vendor_new_phone',    this.vendorPhone    || '');
-                 $wire.set('vendor_new_location', this.vendorLocation || '');
-                 $wire.set('vendor_mode', 'new');
-                 $wire.set('user_id', null);
-             }
-         }
-     }">
+<div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg">
+    <form wire:submit="save" class="space-y-6 p-6">
 
-    <form wire:submit.prevent="save" class="space-y-6 p-6">
-
-        {{-- Bannière erreurs --}}
+        {{-- Bannière d'erreurs récapitulative --}}
         @if ($errors->any())
             <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm"
                  x-data x-init="$el.scrollIntoView({ behavior: 'smooth' })">
                 <div class="flex items-center gap-2 font-bold mb-1.5 text-red-900">
                     <svg class="h-5 w-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732
-                                 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    <span>Veuillez vérifier les points suivants avant d'enregistrer :</span>
+                    <span>Veuillez corriger les points suivants avant d'enregistrer :</span>
                 </div>
                 <ul class="list-disc list-inside space-y-1 text-xs text-red-700">
                     @foreach ($errors->all() as $error)
@@ -340,9 +313,10 @@ new class extends Component
             </div>
         @endif
 
-        {{-- ===== SECTION SUPER ADMIN ===== --}}
+        {{-- ===== SECTION SUPER ADMIN : ATTRIBUTION DE L'ANNONCE ===== --}}
         @if (Auth::user()?->is_admin)
-            <div class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
+            <div x-data="{ mode: '{{ $vendor_mode }}' }"
+                 class="rounded-2xl border-2 border-dashed border-[#7D5A50]/40 bg-[#7D5A50]/5 p-5">
                 <div class="flex items-center justify-between gap-3 mb-2">
                     <div class="flex items-center gap-2">
                         <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#7D5A50] text-white text-xs font-bold">★</span>
@@ -352,11 +326,12 @@ new class extends Component
                 </div>
                 <p class="text-xs text-slate-600 mb-4">Vous pouvez publier ce produit au nom d'un vendeur ou producteur tiers.</p>
 
-                {{-- Boutons bascule --}}
+                <!-- Boutons bascule : Vendeur existant vs Nouveau client -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                     <button type="button"
-                            @click="setMode('existing')"
-                            :class="vendorMode === 'existing'
+                            @click="mode = 'existing'"
+                            wire:click="setVendorMode('existing')"
+                            :class="mode === 'existing'
                                 ? 'bg-[#7D5A50] text-white border-[#7D5A50] shadow-sm'
                                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'"
                             class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition cursor-pointer">
@@ -364,8 +339,9 @@ new class extends Component
                         <span class="text-[10px] opacity-80">(Choisir dans la liste)</span>
                     </button>
                     <button type="button"
-                            @click="setMode('new')"
-                            :class="vendorMode === 'new'
+                            @click="mode = 'new'"
+                            wire:click="setVendorMode('new')"
+                            :class="mode === 'new'
                                 ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
                                 : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'"
                             class="flex items-center justify-center gap-2 rounded-xl p-3 text-xs font-bold border transition cursor-pointer">
@@ -374,12 +350,14 @@ new class extends Component
                     </button>
                 </div>
 
-                {{-- Bloc Vendeur Existant --}}
-                <div x-show="vendorMode === 'existing'" class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                <!-- Bloc Vendeur Existant -->
+                <div x-show="mode === 'existing'"
+                     style="{{ $vendor_mode === 'existing' ? '' : 'display: none;' }}"
+                     class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Sélectionnez le vendeur propriétaire :</label>
                         <select wire:model.live="user_id"
-                                @change="if ($event.target.value == -1) { setMode('new'); }"
+                                @change="if ($event.target.value == -1) { mode = 'new'; $wire.setVendorMode('new'); }"
                                 class="w-full rounded-lg border-slate-300 text-xs focus:border-[#7D5A50] focus:ring-[#7D5A50]">
                             <option value="{{ Auth::id() }}">★ Moi-même (Super Admin - {{ Auth::user()->name }})</option>
                             <option value="-1">➕ Créer un nouveau client...</option>
@@ -407,11 +385,9 @@ new class extends Component
                     @endif
                 </div>
 
-                {{-- Bloc Nouveau Client --}}
-                {{-- Alpine x-model préserve les valeurs, @blur sync vers Livewire au fur et à mesure. --}}
-                {{-- beforeSubmit() force la sync finale juste avant save(). --}}
-                <div x-show="vendorMode === 'new'"
-                     style="{{ $vendor_mode === 'new' ? '' : 'display:none;' }}"
+                <!-- Bloc Nouveau Client / Vendeur -->
+                <div x-show="mode === 'new'"
+                     style="{{ $vendor_mode === 'new' ? '' : 'display: none;' }}"
                      class="rounded-xl bg-white p-4 border-2 border-emerald-500/30 space-y-3 shadow-sm">
                     <div class="flex items-center justify-between">
                         <div class="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
@@ -419,15 +395,14 @@ new class extends Component
                             <span>Coordonnées du nouveau client / vendeur :</span>
                         </div>
                         <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            Compte créé automatiquement
+                            Compte client créé automatiquement
                         </span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Nom complet du client *</label>
                             <input type="text"
-                                   x-model="vendorName"
-                                   @blur="$wire.set('vendor_new_name', vendorName)"
+                                   wire:model="vendor_new_name"
                                    placeholder="Ex: Samba Diallo"
                                    class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                             @error('vendor_new_name') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
@@ -435,8 +410,7 @@ new class extends Component
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Téléphone / WhatsApp *</label>
                             <input type="tel"
-                                   x-model="vendorPhone"
-                                   @blur="$wire.set('vendor_new_phone', vendorPhone)"
+                                   wire:model="vendor_new_phone"
                                    placeholder="Ex: +221 77 123 45 67"
                                    class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                             @error('vendor_new_phone') <span class="text-[10px] text-red-600 font-bold">{{ $message }}</span> @enderror
@@ -444,20 +418,19 @@ new class extends Component
                         <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">Localisation / Région</label>
                             <input type="text"
-                                   x-model="vendorLocation"
-                                   @blur="$wire.set('vendor_new_location', vendorLocation)"
+                                   wire:model="vendor_new_location"
                                    placeholder="Ex: Thiès, Niayes"
                                    class="w-full rounded-lg border-slate-300 text-xs focus:border-emerald-600 focus:ring-emerald-600">
                         </div>
                     </div>
                     <p class="text-[11px] text-slate-500 italic">
-                        💡 Dès validation, ce client sera créé et les acheteurs pourront le contacter directement via WhatsApp / Téléphone.
+                        💡 Dès validation, ce client sera créé sur la plateforme et les acheteurs pourront le contacter directement sur son numéro WhatsApp / Téléphone.
                     </p>
                 </div>
             </div>
         @endif
 
-        {{-- ===== CHAMPS DE L'ANNONCE ===== --}}
+        {{-- ===== CHAMPS PRINCIPAUX DU PRODUIT / ANNONCE ===== --}}
         <div class="grid gap-5 md:grid-cols-2">
             <div>
                 <label for="type" class="block text-sm font-medium text-slate-700">Type d'annonce</label>
@@ -534,7 +507,7 @@ new class extends Component
                                 {{ $availability_type === 'later'
                                     ? 'border-[#7D5A50] bg-[#7D5A50]/10 text-[#7D5A50] ring-2 ring-[#7D5A50]/20'
                                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
@@ -587,18 +560,13 @@ new class extends Component
             @error('photos.*') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
-        {{-- ===== BOUTON SUBMIT =====
-             @click.prevent → appelle beforeSubmit() pour sync Alpine → Livewire
-             $nextTick      → attend que Livewire reçoive les valeurs
-             $wire.save()   → déclenche la méthode save() côté PHP
-        --}}
+        {{-- ===== BOUTON DE SOUMISSION ===== --}}
         <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
             <a href="{{ route('listings.mine') }}"
                class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 Annuler
             </a>
-            <button type="button"
-                    @click="beforeSubmit(); $nextTick(() => { $wire.save(); })"
+            <button type="submit"
                     class="inline-flex items-center justify-center gap-2 rounded-md bg-[#7D5A50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6b4d44] disabled:opacity-50 transition cursor-pointer"
                     wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="save">Enregistrer l'annonce</span>
