@@ -103,17 +103,17 @@ Route::get('/deploy-now-agrikoom', function () {
     $output[] = "=== CURRENT COMMIT ===";
     $output[] = shell_exec('git log -1 --oneline 2>&1');
 
-    $output[] = "=== RECENT ERROR LOGS ===";
+    $output[] = "=== RECENT LISTINGS IN DB ===";
+    foreach (\App\Models\Listing::latest()->take(5)->get() as $item) {
+        $output[] = "ID: {$item->id} | Title: {$item->title} | UserID: {$item->user_id} | Created: {$item->created_at}";
+    }
+
+    $output[] = "=== LAST 30 LOG LINES ===";
     $logFile = storage_path('logs/laravel.log');
     if (file_exists($logFile)) {
         $lines = file($logFile);
-        $recentErrors = [];
-        for ($i = count($lines) - 1; $i >= 0 && count($recentErrors) < 10; $i--) {
-            if (strpos($lines[$i], '.ERROR:') !== false || strpos($lines[$i], 'Exception') !== false || strpos($lines[$i], 'SQLSTATE') !== false) {
-                $recentErrors[] = $lines[$i];
-            }
-        }
-        $output[] = implode("", array_reverse($recentErrors));
+        $lastLines = array_slice($lines, -30);
+        $output[] = implode("", $lastLines);
     }
 
     return response('<pre>' . implode("\n", $output) . '</pre>');

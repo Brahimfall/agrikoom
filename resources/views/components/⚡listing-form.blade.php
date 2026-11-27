@@ -105,6 +105,17 @@ new class extends Component
 
     public function save()
     {
+        \Illuminate\Support\Facades\Log::info('⚡ SAVE CALL INITIATED', [
+            'admin' => Auth::user()?->is_admin,
+            'vendor_mode' => $this->vendor_mode,
+            'user_id' => $this->user_id,
+            'title' => $this->title,
+            'product' => $this->product,
+            'category_id' => $this->category_id,
+            'vendor_new_name' => $this->vendor_new_name,
+            'vendor_new_phone' => $this->vendor_new_phone,
+        ]);
+
         // Remplissage automatique intelligent pour éviter tout blocage de validation
         if (empty($this->title) && ! empty($this->product)) {
             $this->title = $this->product;
@@ -164,7 +175,14 @@ new class extends Component
             $customMessages['vendor_new_phone.required'] = 'Le numéro de téléphone du client est obligatoire.';
         }
 
-        $data = $this->validate($validationRules, $customMessages);
+        try {
+            $data = $this->validate($validationRules, $customMessages);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            \Illuminate\Support\Facades\Log::warning('⚡ VALIDATION FAILED', [
+                'errors' => $ve->errors(),
+            ]);
+            throw $ve;
+        }
 
         $existingPhotoCount = $this->listing?->exists ? $this->listing->photos()->count() : 0;
         if ($existingPhotoCount + count($this->photos) > 5) {
