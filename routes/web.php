@@ -103,6 +103,19 @@ Route::get('/deploy-now-agrikoom', function () {
     $output[] = "=== CURRENT COMMIT ===";
     $output[] = shell_exec('git log -1 --oneline 2>&1');
 
+    $output[] = "=== TEST CREATION LISTING SIMULATION ===";
+    try {
+        $firstCat = \App\Models\Category::first();
+        $admin = \App\Models\User::where('is_admin', true)->first();
+        $output[] = "Admin found: " . ($admin ? "ID {$admin->id} ({$admin->name})" : "NONE");
+        $output[] = "Category found: " . ($firstCat ? "ID {$firstCat->id} ({$firstCat->name})" : "NONE");
+        if ($admin && $firstCat) {
+            $output[] = "DB Connection is OK and models are queryable.";
+        }
+    } catch (\Throwable $e) {
+        $output[] = "SIMULATION ERROR: " . $e->getMessage();
+    }
+
     $output[] = "=== RECENT LISTINGS IN DB ===";
     foreach (\App\Models\Listing::latest()->take(5)->get() as $item) {
         $output[] = "ID: {$item->id} | Title: {$item->title} | UserID: {$item->user_id} | Created: {$item->created_at}";

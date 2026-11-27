@@ -150,10 +150,10 @@ new class extends Component
             'title'             => ['required', 'string', 'max:160'],
             'product'           => ['required', 'string', 'max:120'],
             'description'       => ['nullable', 'string', 'max:2000'],
-            'category_id'       => ['required', 'exists:categories,id'],
-            'quantity'          => ['nullable', 'numeric', 'min:0'],
+            'category_id'       => ['required'],
+            'quantity'          => ['nullable'],
             'unit'              => ['nullable', 'string', 'max:40'],
-            'price'             => ['nullable', 'numeric', 'min:0'],
+            'price'             => ['nullable'],
             'is_negotiable'     => ['boolean'],
             'location'          => ['required', 'string', 'max:255'],
             'availability_type' => ['required', 'in:immediate,later'],
@@ -165,7 +165,13 @@ new class extends Component
             $validationRules['available_from'] = ['required', 'date'];
         }
 
-        $customMessages = [];
+        $customMessages = [
+            'title.required'       => 'Le titre de l\'annonce est obligatoire.',
+            'product.required'     => 'Le nom du produit est obligatoire.',
+            'category_id.required' => 'Veuillez choisir une catégorie pour votre produit.',
+            'location.required'    => 'La localisation est obligatoire.',
+        ];
+
         if (Auth::user()?->is_admin && $this->vendor_mode === 'new') {
             $validationRules['vendor_new_name']     = ['required', 'string', 'max:120'];
             $validationRules['vendor_new_phone']    = ['required', 'string', 'max:30'];
@@ -197,15 +203,23 @@ new class extends Component
                 $rawPhone = trim($this->vendor_new_phone);
                 $digits   = preg_replace('/\D+/', '', $rawPhone);
 
-                // Rechercher un vendeur existant (exclure le super admin lui-même)
-                $newVendor = User::where('phone', $rawPhone)->where('id', '!=', Auth::id())->first();
-                if (! $newVendor && strlen($digits) >= 9) {
-                    $newVendor = User::where('phone', 'LIKE', '%' . substr($digits, -9))
-                        ->where('id', '!=', Auth::id())
-                        ->first();
+                // Rechercher si ce numéro existe déjà en base
+                $existingUserWithPhone = User::where('phone', $rawPhone)->first();
+                if (! $existingUserWithPhone && strlen($digits) >= 9) {
+                    $existingUserWithPhone = User::where('phone', 'LIKE', '%' . substr($digits, -9))->first();
                 }
 
-                if (! $newVendor) {
+                if ($existingUserWithPhone) {
+                    if ($existingUserWithPhone->id === Auth::id()) {
+                        $targetUserId = Auth::id();
+                    } else {
+                        $upd = [];
+                        if (! empty($this->vendor_new_name))     { $upd['name']     = trim($this->vendor_new_name); }
+                        if (! empty($this->vendor_new_location)) { $upd['location'] = trim($this->vendor_new_location); }
+                        if (! empty($upd)) { $existingUserWithPhone->update($upd); }
+                        $targetUserId = $existingUserWithPhone->id;
+                    }
+                } else {
                     $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
                     if ($emailVal && User::where('email', $emailVal)->exists()) {
                         $emailVal = null;
@@ -215,19 +229,13 @@ new class extends Component
                         'phone'             => $rawPhone,
                         'email'             => $emailVal,
                         'password'          => Hash::make(Str::random(32)),
-                        'location'          => trim($this->vendor_new_location) ?: $data['location'],
+                        'location'          => trim($this->vendor_new_location) ?: ($data['location'] ?? 'Sénégal'),
                         'actor_type'        => 'producer',
                         'is_admin'          => false,
                         'phone_verified_at' => now(),
                     ]);
-                } else {
-                    $upd = [];
-                    if (! empty($this->vendor_new_name))     { $upd['name']     = trim($this->vendor_new_name); }
-                    if (! empty($this->vendor_new_location)) { $upd['location'] = trim($this->vendor_new_location); }
-                    if (! empty($upd)) { $newVendor->update($upd); }
+                    $targetUserId = $newVendor->id;
                 }
-                $targetUserId = $newVendor->id;
-
             } elseif ($this->user_id && (int) $this->user_id > 0) {
                 $targetUserId = (int) $this->user_id;
             }
@@ -235,7 +243,7 @@ new class extends Component
             $targetUserId = $this->listing->user_id;
         }
 
-        // Filet de sécurité absolu : jamais lié à l'admin si mode nouveau client
+        // Filet de sécurité absolu : jamais lié à l'admin si mode nouveau client avec nom renseigné
         if (Auth::user()?->is_admin && $this->vendor_mode === 'new' && $targetUserId === Auth::id()) {
             if (! empty(trim($this->vendor_new_name))) {
                 $emailVal = ! empty($this->vendor_new_email) ? trim($this->vendor_new_email) : null;
@@ -244,7 +252,7 @@ new class extends Component
                     'phone'             => trim($this->vendor_new_phone),
                     'email'             => $emailVal,
                     'password'          => Hash::make(Str::random(32)),
-                    'location'          => trim($this->vendor_new_location) ?: $data['location'],
+                    'location'          => trim($this->vendor_new_location) ?: ($data['location'] ?? 'Sénégal'),
                     'actor_type'        => 'producer',
                     'is_admin'          => false,
                     'phone_verified_at' => now(),
@@ -257,13 +265,23 @@ new class extends Component
             ? now()->toDateString()
             : ($this->available_from ?: now()->toDateString());
 
+        $cleanQuantity = null;
+        if (! empty($data['quantity']) && is_numeric($data['quantity'])) {
+            $cleanQuantity = (float) $data['quantity'];
+        }
+
+        $cleanPrice = null;
+        if (! empty($data['price']) && is_numeric($data['price'])) {
+            $cleanPrice = (float) $data['price'];
+        }
+
         $listingData = collect($data)->except([
             'photos', 'availability_type',
             'vendor_new_name', 'vendor_new_phone', 'vendor_new_email', 'vendor_new_location',
         ])->merge([
             'user_id'        => $targetUserId,
-            'quantity'       => ($data['quantity'] ?? '') === '' ? null : $data['quantity'],
-            'price'          => ($data['price'] ?? '') === '' ? null : $data['price'],
+            'quantity'       => $cleanQuantity,
+            'price'          => $cleanPrice,
             'available_from' => $finalAvailableFrom,
             'expires_at'     => $this->listing?->expires_at ?? now()->addDays(30),
             'status'         => $this->listing?->status ?? 'active',
@@ -585,6 +603,7 @@ new class extends Component
                 Annuler
             </a>
             <button type="submit"
+                    wire:click="save"
                     class="inline-flex items-center justify-center gap-2 rounded-md bg-[#7D5A50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6b4d44] disabled:opacity-50 transition cursor-pointer"
                     wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="save">Enregistrer l'annonce</span>
