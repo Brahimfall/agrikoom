@@ -121,12 +121,22 @@ Route::get('/deploy-now-agrikoom', function () {
         $output[] = "ID: {$item->id} | Title: {$item->title} | UserID: {$item->user_id} | Created: {$item->created_at}";
     }
 
-    $output[] = "=== LAST 30 LOG LINES ===";
+    $output[] = "=== SEARCH SAVE IN LOGS ===";
     $logFile = storage_path('logs/laravel.log');
     if (file_exists($logFile)) {
         $lines = file($logFile);
-        $lastLines = array_slice($lines, -30);
-        $output[] = implode("", $lastLines);
+        $found = [];
+        foreach ($lines as $line) {
+            if (str_contains($line, 'SAVE CALL') || str_contains($line, 'VALIDATION') || str_contains($line, 'Tentative save')) {
+                $found[] = $line;
+            }
+        }
+        $output[] = count($found) > 0 ? implode("", array_slice($found, -15)) : "NO SAVE LOG FOUND IN LOG FILE (total lines: " . count($lines) . ")";
+        
+        // Also show the very last 10 non-empty lines of log
+        $nonEmpty = array_values(array_filter(array_map('trim', $lines)));
+        $output[] = "=== VERY LAST 5 LOG LINES ===";
+        $output[] = implode("\n", array_slice($nonEmpty, -5));
     }
 
     return response('<pre>' . implode("\n", $output) . '</pre>');
