@@ -103,17 +103,21 @@ Route::get('/deploy-now-agrikoom', function () {
     $output[] = "=== CURRENT COMMIT ===";
     $output[] = shell_exec('git log -1 --oneline 2>&1');
 
-    $output[] = "=== TEST CREATION LISTING SIMULATION ===";
+    $output[] = "=== TEST LIVEWIRE COMPONENT RENDER ===";
     try {
-        $firstCat = \App\Models\Category::first();
         $admin = \App\Models\User::where('is_admin', true)->first();
-        $output[] = "Admin found: " . ($admin ? "ID {$admin->id} ({$admin->name})" : "NONE");
-        $output[] = "Category found: " . ($firstCat ? "ID {$firstCat->id} ({$firstCat->name})" : "NONE");
-        if ($admin && $firstCat) {
-            $output[] = "DB Connection is OK and models are queryable.";
+        if ($admin) {
+            \Illuminate\Support\Facades\Auth::login($admin);
+            $rendered = \Livewire\Livewire::mount('listing-form', ['listing' => null]);
+            $html = is_string($rendered) ? $rendered : (method_exists($rendered, 'html') ? $rendered->html() : 'RENDERED OBJECT');
+            $output[] = "Mount successful! Component class: " . get_class($rendered);
+            $output[] = "HTML contains wire:id: " . (str_contains($html, 'wire:id') ? 'YES' : 'NO');
+            $output[] = "HTML snippet (first 300 chars): " . substr(strip_tags($html), 0, 300);
+        } else {
+            $output[] = "No admin user found to test mount";
         }
     } catch (\Throwable $e) {
-        $output[] = "SIMULATION ERROR: " . $e->getMessage();
+        $output[] = "MOUNT ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
     }
 
     $output[] = "=== RECENT LISTINGS IN DB ===";
