@@ -328,7 +328,7 @@ new class extends Component
 ?>
 
 <div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg">
-    <form wire:submit.prevent="save" onsubmit="event.preventDefault(); return false;" action="javascript:void(0);" class="space-y-6 p-6">
+    <div class="space-y-6 p-6">
 
         {{-- Bannière d'erreurs récapitulative --}}
         @if ($errors->any())
@@ -616,5 +616,5 @@ new class extends Component
                 </span>
             </button>
         </div>
-    </form>
+    </div>
 </div>

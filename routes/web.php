@@ -172,7 +172,16 @@ Route::get('/deploy-now-agrikoom', function () {
         $output[] = "ID: {$item->id} | Title: {$item->title} | UserID: {$item->user_id} | Created: {$item->created_at}";
     }
 
-    $output[] = "=== SEARCH SAVE IN LOGS ===";
+    $output[] = "=== TEST LOG WRITING ===";
+    $testToken = "TEST_LOG_WRITE_" . time();
+    \Illuminate\Support\Facades\Log::info($testToken);
+    $logFile = storage_path('logs/laravel.log');
+    if (file_exists($logFile)) {
+        $logContent = file_get_contents($logFile);
+        $output[] = "Does laravel.log contain token $testToken? " . (str_contains($logContent, $testToken) ? "YES (LOGGING WORKS!)" : "NO (LOGGING BROKEN OR BUFFERED!)");
+    } else {
+        $output[] = "logFile does not exist at: $logFile";
+    }
     $logFile = storage_path('logs/laravel.log');
     if (file_exists($logFile)) {
         $lines = file($logFile);
