@@ -162,7 +162,12 @@ Route::get('/deploy-now-agrikoom', function () {
         $output[] = "GET /publier ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
     }
 
-    $output[] = "=== RECENT LISTINGS IN DB ===";
+    $output[] = "=== APP_URL AND LIVEWIRE ASSET URL ===";
+    $output[] = "env('APP_URL'): " . env('APP_URL');
+    $output[] = "config('app.url'): " . config('app.url');
+    $output[] = "config('livewire.asset_url'): " . config('livewire.asset_url');
+    $output[] = "URL::to('/'): " . \Illuminate\Support\Facades\URL::to('/');
+    $output[] = "asset(''): " . asset('');
     foreach (\App\Models\Listing::latest()->take(5)->get() as $item) {
         $output[] = "ID: {$item->id} | Title: {$item->title} | UserID: {$item->user_id} | Created: {$item->created_at}";
     }
