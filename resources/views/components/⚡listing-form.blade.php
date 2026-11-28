@@ -328,7 +328,7 @@ new class extends Component
 ?>
 
 <div class="bg-white border border-slate-200 shadow-sm sm:rounded-lg">
-    <form wire:submit="save" class="space-y-6 p-6">
+    <form wire:submit.prevent="save" onsubmit="event.preventDefault(); return false;" action="javascript:void(0);" class="space-y-6 p-6">
 
         {{-- Bannière d'erreurs récapitulative --}}
         @if ($errors->any())
@@ -602,7 +602,8 @@ new class extends Component
                class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 Annuler
             </a>
-            <button type="submit"
+            <button type="button"
+                    wire:click="save"
                     class="inline-flex items-center justify-center gap-2 rounded-md bg-[#7D5A50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6b4d44] disabled:opacity-50 transition cursor-pointer"
                     wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="save">Enregistrer l'annonce</span>
