@@ -136,6 +136,32 @@ Route::get('/deploy-now-agrikoom', function () {
         $output[] = "SIMULATION FAILED: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
     }
 
+    $output[] = "=== TEST GET /publier AS ADMIN ===";
+    try {
+        $admin = \App\Models\User::where('is_admin', true)->first();
+        if ($admin) {
+            \Illuminate\Support\Facades\Auth::login($admin);
+            $req = \Illuminate\Http\Request::create('/publier', 'GET');
+            $req->setUserResolver(fn () => $admin);
+            $resp = app()->handle($req);
+            $content = $resp->getContent();
+            $output[] = "Response status: " . $resp->getStatusCode();
+            $output[] = "Contains @livewireScripts: " . (str_contains($content, 'livewire.js') ? 'YES' : 'NO');
+            $output[] = "Contains wire:id: " . (str_contains($content, 'wire:id') ? 'YES' : 'NO');
+            $output[] = "Contains wire:click=\"save\": " . (str_contains($content, 'wire:click="save"') ? 'YES' : 'NO');
+            $output[] = "Contains wire:submit: " . (str_contains($content, 'wire:submit') ? 'YES' : 'NO');
+
+            // Find all script tags in the page
+            preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $content, $matches);
+            $output[] = "Number of script tags: " . count($matches[0]);
+            foreach (array_slice($matches[0], 0, 5) as $idx => $s) {
+                $output[] = "Script #$idx: " . substr(strip_tags($s), 0, 100) . " (tag: " . substr($s, 0, 80) . ")";
+            }
+        }
+    } catch (\Throwable $e) {
+        $output[] = "GET /publier ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
+    }
+
     $output[] = "=== RECENT LISTINGS IN DB ===";
     foreach (\App\Models\Listing::latest()->take(5)->get() as $item) {
         $output[] = "ID: {$item->id} | Title: {$item->title} | UserID: {$item->user_id} | Created: {$item->created_at}";
