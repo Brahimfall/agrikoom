@@ -603,7 +603,6 @@ new class extends Component
                 Annuler
             </a>
             <button type="submit"
-                    wire:click="save"
                     class="inline-flex items-center justify-center gap-2 rounded-md bg-[#7D5A50] px-5 py-2 text-sm font-semibold text-white hover:bg-[#6b4d44] disabled:opacity-50 transition cursor-pointer"
                     wire:loading.attr="disabled">
                 <span wire:loading.remove wire:target="save">Enregistrer l'annonce</span>

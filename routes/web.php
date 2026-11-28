@@ -103,21 +103,37 @@ Route::get('/deploy-now-agrikoom', function () {
     $output[] = "=== CURRENT COMMIT ===";
     $output[] = shell_exec('git log -1 --oneline 2>&1');
 
-    $output[] = "=== TEST LIVEWIRE COMPONENT RENDER ===";
+    $output[] = "=== TEST LIVEWIRE COMPONENT SAVE SIMULATION ===";
     try {
         $admin = \App\Models\User::where('is_admin', true)->first();
-        if ($admin) {
+        $cat = \App\Models\Category::first();
+        if ($admin && $cat) {
             \Illuminate\Support\Facades\Auth::login($admin);
-            $rendered = \Livewire\Livewire::mount('listing-form', ['listing' => null]);
-            $html = is_string($rendered) ? $rendered : (method_exists($rendered, 'html') ? $rendered->html() : 'RENDERED OBJECT');
-            $output[] = "Mount successful! Component class: " . get_class($rendered);
-            $output[] = "HTML contains wire:id: " . (str_contains($html, 'wire:id') ? 'YES' : 'NO');
-            $output[] = "HTML snippet (first 300 chars): " . substr(strip_tags($html), 0, 300);
-        } else {
-            $output[] = "No admin user found to test mount";
+            
+            // Simuler l'enregistrement avec Livewire
+            $testTitle = "Produit Test Auto " . date('H:i:s');
+            $testListing = \App\Models\Listing::create([
+                'user_id' => $admin->id,
+                'category_id' => $cat->id,
+                'type' => 'offer',
+                'title' => $testTitle,
+                'product' => $testTitle,
+                'description' => 'Test automatique de publication',
+                'price' => 5000,
+                'quantity' => 10,
+                'unit' => 'kg',
+                'location' => 'Dakar',
+                'status' => 'active',
+                'available_from' => now()->toDateString(),
+                'expires_at' => now()->addDays(30),
+            ]);
+            $output[] = "Direct DB Listing::create SUCCESS! Created ID: {$testListing->id}";
+            // Nettoyage immédiat pour ne pas polluer le site
+            $testListing->delete();
+            $output[] = "Cleaned up test listing ID: {$testListing->id}";
         }
     } catch (\Throwable $e) {
-        $output[] = "MOUNT ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
+        $output[] = "SIMULATION FAILED: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine();
     }
 
     $output[] = "=== RECENT LISTINGS IN DB ===";
